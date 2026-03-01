@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { login } from "../services/api";
 import { useAuthStore } from "../store/authStore";
@@ -10,6 +10,16 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const storeLogin = useAuthStore((s) => s.login);
+
+  useEffect(() => {
+    document.title = "FlowForge — Login";
+  }, []);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -24,7 +34,7 @@ const LoginPage = () => {
       if (err instanceof Error) {
         setError(err.message);
       } else {
-        setError("Login failed. Please try again.");
+        setError("Invalid email or password");
       }
     } finally {
       setLoading(false);
@@ -37,6 +47,24 @@ const LoginPage = () => {
         <h1 className="mb-8 text-center text-3xl font-bold tracking-tight text-white">
           FlowForge
         </h1>
+
+        <div className="mb-4 rounded-lg border border-blue-800/50 bg-blue-900/20 p-3">
+          <p className="text-center text-xs text-blue-300">
+            Try the demo &mdash;{" "}
+            <span className="font-mono text-blue-200">demo@flowforge.com</span>{" "}
+            / <span className="font-mono text-blue-200">Demo1234!</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              setEmail("demo@flowforge.com");
+              setPassword("Demo1234!");
+            }}
+            className="mt-2 w-full rounded-md bg-blue-800/40 px-3 py-1.5 text-xs font-medium text-blue-200 transition-colors hover:bg-blue-800/60"
+          >
+            Use Demo Credentials
+          </button>
+        </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>

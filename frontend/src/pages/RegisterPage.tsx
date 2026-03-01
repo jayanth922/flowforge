@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useState, useEffect, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { register } from "../services/api";
 import { useAuthStore } from "../store/authStore";
@@ -11,6 +11,16 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const storeLogin = useAuthStore((s) => s.login);
+
+  useEffect(() => {
+    document.title = "FlowForge — Register";
+  }, []);
+
+  useEffect(() => {
+    if (!error) return;
+    const timer = setTimeout(() => setError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [error]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();

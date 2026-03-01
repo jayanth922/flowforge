@@ -35,7 +35,15 @@ const truncateOutput = (output: Record<string, unknown>): string => {
 };
 
 const ExecutionLogPanel = ({ steps, status }: ExecutionLogPanelProps) => {
-  if (!status) return null;
+  if (!status) {
+    return (
+      <div className="border-t border-gray-800 bg-gray-950 px-4 py-4">
+        <p className="text-center text-sm text-gray-600">
+          Run the workflow to see execution steps here
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="border-t border-gray-800 bg-gray-950">
