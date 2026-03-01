@@ -117,6 +117,22 @@ export const disableWebhook = async (
   await api.post(`/workflows/${workflowId}/webhook/disable`);
 };
 
+export interface CronValidationResponse {
+  valid: boolean;
+  description: string;
+  nextRuns: string[];
+}
+
+export const validateCron = async (
+  expr: string,
+): Promise<CronValidationResponse> => {
+  const res = await api.get<{ success: true; data: CronValidationResponse }>(
+    "/workflows/validate-cron",
+    { params: { expr } },
+  );
+  return res.data.data;
+};
+
 export const getExecutionStatus = async (
   executionId: string,
 ): Promise<ExecutionStatusResponse> => {

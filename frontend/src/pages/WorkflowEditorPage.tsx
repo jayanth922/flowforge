@@ -7,6 +7,8 @@ import {
   getWebhookStatus,
   enableWebhook,
   disableWebhook,
+  validateCron,
+  type CronValidationResponse,
 } from "../services/api";
 import { useExecutionStatus } from "../hooks/useExecutionStatus";
 import NavHeader from "../components/NavHeader";
@@ -61,6 +63,10 @@ const WorkflowEditorPage = () => {
   const [webhookLoading, setWebhookLoading] = useState(false);
   const [copied, setCopied] = useState(false);
 
+  const [cronExpr, setCronExpr] = useState("");
+  const [cronValidation, setCronValidation] = useState<CronValidationResponse | null>(null);
+  const [cronValidating, setCronValidating] = useState(false);
+
   const [executionId, setExecutionId] = useState<string | null>(null);
   const { executionStatus, steps, isRunning } =
     useExecutionStatus(executionId);
@@ -100,6 +106,11 @@ const WorkflowEditorPage = () => {
         setNodes(dag.dag.nodes);
         setEdges(dag.dag.edges);
         setPrompt(dag.naturalLanguagePrompt);
+
+        const trigger = dag.dag.nodes.find((n) => n.type === "trigger");
+        if (trigger?.config?.cronExpression && typeof trigger.config.cronExpression === "string") {
+          setCronExpr(trigger.config.cronExpression);
+        }
       })
       .catch(() => {
         setError("Failed to load workflow");
@@ -182,6 +193,27 @@ const WorkflowEditorPage = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const handleValidateCron = async () => {
+    if (!cronExpr.trim()) return;
+    setCronValidating(true);
+    try {
+      const result = await validateCron(cronExpr.trim());
+      setCronValidation(result);
+    } catch {
+      setCronValidation({ valid: false, description: "Validation failed", nextRuns: [] });
+    } finally {
+      setCronValidating(false);
+    }
+  };
+
+  const triggerType = useMemo(() => {
+    const triggerNode = nodes.find((n) => n.type === "trigger");
+    if (!triggerNode) return "manual";
+    const tt = triggerNode.config?.triggerType;
+    if (tt === "schedule" || tt === "webhook") return tt;
+    return "manual";
+  }, [nodes]);
+
   if (pageLoading) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-950">
@@ -229,11 +261,11 @@ const WorkflowEditorPage = () => {
             error={error}
           />
 
-          {workflowId && (
+          {workflowId && triggerType !== "manual" && (
             <div className="border-t border-gray-800 px-4 py-4">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-gray-300">
-                  Webhook
+                  {triggerType === "schedule" ? "Schedule" : "Webhook"}
                 </span>
                 <button
                   onClick={handleWebhookToggle}
@@ -250,7 +282,7 @@ const WorkflowEditorPage = () => {
                 </button>
               </div>
 
-              {webhookEnabled && webhookUrl && (
+              {triggerType === "webhook" && webhookEnabled && webhookUrl && (
                 <div className="mt-3">
                   <label className="mb-1 block text-xs text-gray-500">
                     POST to this URL to trigger this workflow from any external
@@ -270,6 +302,66 @@ const WorkflowEditorPage = () => {
                       {copied ? "Copied!" : "Copy"}
                     </button>
                   </div>
+                </div>
+              )}
+
+              {triggerType === "schedule" && webhookEnabled && (
+                <div className="mt-3">
+                  <label className="mb-1 block text-xs text-gray-500">
+                    Cron expression
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={cronExpr}
+                      onChange={(e) => {
+                        setCronExpr(e.target.value);
+                        setCronValidation(null);
+                      }}
+                      placeholder="0 9 * * *"
+                      className="flex-1 rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                    />
+                    <button
+                      onClick={handleValidateCron}
+                      disabled={cronValidating || !cronExpr.trim()}
+                      className="shrink-0 rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-gray-700 disabled:opacity-50"
+                    >
+                      {cronValidating ? "..." : "Validate"}
+                    </button>
+                  </div>
+
+                  {cronValidation && (
+                    <div className="mt-2">
+                      {cronValidation.valid ? (
+                        <>
+                          <p className="text-xs text-green-400">
+                            {cronValidation.description}
+                          </p>
+                          {cronValidation.nextRuns.length > 0 && (
+                            <div className="mt-1.5">
+                              <p className="text-[10px] font-medium uppercase tracking-wider text-gray-500">
+                                Next 3 runs
+                              </p>
+                              <ul className="mt-0.5 space-y-0.5">
+                                {cronValidation.nextRuns.map((run) => (
+                                  <li
+                                    key={run}
+                                    className="text-xs text-gray-400"
+                                  >
+                                    {new Date(run).toLocaleString()}
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <p className="text-xs text-red-400">
+                          {cronValidation.description}
+                        </p>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>

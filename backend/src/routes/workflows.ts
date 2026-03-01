@@ -10,6 +10,11 @@ import {
   disableWebhook,
 } from "../models/workflowPg.model.js";
 import { WorkflowDAGModel } from "../models/workflow.model.js";
+import {
+  registerWorkflowSchedule,
+  unregisterWorkflowSchedule,
+  validateCronExpression,
+} from "../services/schedulerService.js";
 
 export const workflowRouter = Router();
 
@@ -17,7 +22,26 @@ const compileSchema = z.object({
   prompt: z.string().min(10).max(500),
 });
 
+const cronQuerySchema = z.object({
+  expr: z.string().min(1),
+});
+
 workflowRouter.use(requireAuth);
+
+workflowRouter.get("/validate-cron", (req, res) => {
+  const parsed = cronQuerySchema.safeParse(req.query);
+  if (!parsed.success) {
+    res.status(400).json({
+      success: false,
+      error: "Missing or invalid expr query parameter",
+      code: "VALIDATION_ERROR",
+    });
+    return;
+  }
+
+  const result = validateCronExpression(parsed.data.expr);
+  res.status(200).json({ success: true, data: result });
+});
 
 workflowRouter.post("/compile", async (req, res, next) => {
   try {
@@ -180,6 +204,40 @@ workflowRouter.post("/:id/webhook/enable", async (req, res, next) => {
     }
 
     const updated = await enableWebhook(id, tenantId);
+
+    const dag = await WorkflowDAGModel.findOne({ workflowId: id }).sort({
+      version: -1,
+    });
+    const triggerNode = dag?.dag.nodes.find((n) => n.type === "trigger");
+    const triggerType = triggerNode?.config["triggerType"];
+
+    if (
+      triggerType === "schedule" &&
+      typeof triggerNode?.config["cronExpression"] === "string"
+    ) {
+      registerWorkflowSchedule(
+        id,
+        tenantId,
+        triggerNode.config["cronExpression"] as string,
+      );
+
+      const cronExpr = triggerNode.config["cronExpression"] as string;
+      const validation = validateCronExpression(cronExpr);
+
+      res.status(200).json({
+        success: true,
+        data: {
+          webhookSecret: updated.webhook_secret,
+          schedule: {
+            cronExpression: cronExpr,
+            description: validation.description,
+            nextRuns: validation.nextRuns,
+          },
+        },
+      });
+      return;
+    }
+
     const baseUrl = process.env["BASE_URL"] ?? "http://localhost:3001";
     const webhookUrl = `${baseUrl}/api/v1/webhooks/trigger/${updated.webhook_secret}`;
 
@@ -211,6 +269,7 @@ workflowRouter.post("/:id/webhook/disable", async (req, res, next) => {
     }
 
     await disableWebhook(id, tenantId);
+    unregisterWorkflowSchedule(id);
 
     res.status(200).json({
       success: true,

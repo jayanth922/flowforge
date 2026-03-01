@@ -7,6 +7,7 @@ import { connectPostgres } from "./db/postgres.js";
 import { connectMongo } from "./db/mongo.js";
 import { runMigrations } from "./db/migrate.js";
 import { seedIfEmpty } from "./db/seed.js";
+import { initializeScheduler } from "./services/schedulerService.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 import { requestLogger } from "./middleware/requestLogger.js";
@@ -78,6 +79,12 @@ const start = async () => {
     await seedIfEmpty();
   } catch (err) {
     logger.warn({ err }, "seed failed, continuing without seed data");
+  }
+
+  try {
+    await initializeScheduler();
+  } catch (err) {
+    logger.warn({ err }, "scheduler initialization failed, continuing");
   }
 
   app.listen(PORT, () => {
