@@ -195,19 +195,36 @@ const areIntegrationsValid = async (tenantId: string): Promise<boolean> => {
 
   if (result.rows.length === 0) return false;
 
+  const byService = new Map<string, Record<string, unknown>>();
   for (const row of result.rows as { id: string; service: string; credentials: string }[]) {
     try {
       const creds = JSON.parse(decrypt(row.credentials)) as Record<string, unknown>;
-
-      if (row.service === "slack") {
-        const url = creds["webhookUrl"];
-        if (typeof url !== "string" || !url.startsWith("https://hooks.slack.com")) {
-          return false;
-        }
-      }
+      byService.set(row.service, creds);
     } catch {
       return false;
     }
+  }
+
+  const slackCreds = byService.get("slack");
+  if (!slackCreds) return false;
+  const slackUrl = slackCreds["webhookUrl"];
+  if (typeof slackUrl !== "string" || !slackUrl.startsWith("https://hooks.slack.com")) {
+    return false;
+  }
+
+  const discordCreds = byService.get("discord");
+  if (!discordCreds) return false;
+  const discordUrl = discordCreds["webhookUrl"];
+  if (typeof discordUrl !== "string" || !discordUrl.startsWith("https://discord")) {
+    return false;
+  }
+
+  const githubCreds = byService.get("github");
+  if (!githubCreds) return false;
+  const ghToken = githubCreds["token"];
+  const ghOwner = githubCreds["owner"];
+  if (typeof ghToken !== "string" || !ghToken || typeof ghOwner !== "string" || !ghOwner) {
+    return false;
   }
 
   return true;

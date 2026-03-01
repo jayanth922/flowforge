@@ -68,6 +68,7 @@ const IntegrationsPage = () => {
   const load = useCallback(async () => {
     try {
       const data = await listIntegrations();
+      console.log('integrations response:', data);
       setIntegrations(data);
     } catch {
       /* swallow */
@@ -91,6 +92,8 @@ const IntegrationsPage = () => {
       /* swallow */
     }
   };
+
+  console.log('rendering integrations:', integrations);
 
   return (
     <div className="min-h-screen bg-gray-950 text-white">
