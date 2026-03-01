@@ -11,6 +11,10 @@ import {
   type IDAGNode,
   type IDAGEdge,
 } from "../models/workflow.model.js";
+import {
+  createIntegration,
+  type IntegrationService,
+} from "../models/integrationPg.model.js";
 
 const DEMO_EMAIL = "demo@flowforge.com";
 const DEMO_PASSWORD = "Demo1234!";
@@ -182,39 +186,124 @@ const seedWorkflow = async (
   logger.info({ workflow: def.name, nodes: def.nodes.length }, "seeded workflow");
 };
 
-export const seedIfEmpty = async (): Promise<void> => {
-  const existing = await query(
-    "SELECT id FROM users WHERE email = $1",
-    [DEMO_EMAIL],
+const seedIntegrations = async (tenantId: string): Promise<void> => {
+  const countResult = await query(
+    "SELECT COUNT(*)::int AS cnt FROM tenant_integrations WHERE tenant_id = $1",
+    [tenantId],
   );
+  const count = (countResult.rows[0] as { cnt: number }).cnt;
 
-  if (existing.rows.length > 0) {
-    logger.info("seed already applied, skipping");
+  if (count > 0) {
+    logger.info("integrations already seeded, skipping");
     return;
   }
 
-  const tenantResult = await query(
-    "INSERT INTO tenants (name) VALUES ($1) RETURNING *",
-    [DEMO_TENANT_NAME],
-  );
-  const tenantId = (tenantResult.rows[0] as { id: string }).id;
+  const integrationIds: Record<string, string> = {};
 
-  const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
-  const userResult = await query(
-    `INSERT INTO users (tenant_id, email, password_hash, role)
-     VALUES ($1, $2, $3, 'admin')
-     RETURNING *`,
-    [tenantId, DEMO_EMAIL, passwordHash],
-  );
-  const userId = (userResult.rows[0] as { id: string }).id;
-
-  logger.info("created demo tenant and user");
-
-  const baseTime = new Date(Date.now() - 3600_000);
-
-  for (const def of WORKFLOWS) {
-    await seedWorkflow(def, tenantId, userId, baseTime);
+  const slackWebhook = process.env["DEMO_SLACK_WEBHOOK"];
+  if (slackWebhook) {
+    const row = await createIntegration(tenantId, "slack", "Demo Slack", {
+      webhookUrl: slackWebhook,
+    });
+    integrationIds["slack"] = row.id;
+    logger.info("seeded Slack integration");
   }
+
+  const discordWebhook = process.env["DEMO_DISCORD_WEBHOOK"];
+  if (discordWebhook) {
+    const row = await createIntegration(tenantId, "discord", "Demo Discord", {
+      webhookUrl: discordWebhook,
+    });
+    integrationIds["discord"] = row.id;
+    logger.info("seeded Discord integration");
+  }
+
+  const ghToken = process.env["GITHUB_TOKEN"];
+  const ghOwner = process.env["GITHUB_OWNER"];
+  if (ghToken && ghOwner) {
+    const row = await createIntegration(tenantId, "github", "Demo GitHub", {
+      token: ghToken,
+      owner: ghOwner,
+      repo: "flowforge-demo-events",
+    });
+    integrationIds["github"] = row.id;
+    logger.info("seeded GitHub integration");
+  }
+
+  if (Object.keys(integrationIds).length === 0) {
+    logger.info("no integration env vars set, skipping DAG patching");
+    return;
+  }
+
+  const nodeTypeToService: Record<string, string> = {
+    post_slack: "slack",
+    post_discord: "discord",
+    create_github_issue: "github",
+    http_request: "http",
+  };
+
+  const dags = await WorkflowDAGModel.find({ tenantId });
+  for (const dag of dags) {
+    let patched = false;
+    for (const node of dag.dag.nodes) {
+      const svc = nodeTypeToService[node.type];
+      if (svc && integrationIds[svc]) {
+        const cfg = node.config as Record<string, unknown>;
+        const currentId = cfg["integrationId"];
+        if (!currentId || currentId === "PLACEHOLDER") {
+          (node.config as Record<string, unknown>)["integrationId"] = integrationIds[svc];
+          patched = true;
+        }
+      }
+    }
+    if (patched) {
+      dag.markModified("dag.nodes");
+      await dag.save();
+      logger.info({ workflowId: dag.workflowId }, "patched DAG with integration IDs");
+    }
+  }
+};
+
+export const seedIfEmpty = async (): Promise<void> => {
+  const existing = await query(
+    "SELECT id, tenant_id FROM users WHERE email = $1",
+    [DEMO_EMAIL],
+  );
+
+  let tenantId: string;
+  let userId: string;
+
+  if (existing.rows.length > 0) {
+    logger.info("demo user already exists, skipping user/workflow seed");
+    tenantId = (existing.rows[0] as { tenant_id: string }).tenant_id;
+  } else {
+    const tenantResult = await query(
+      "INSERT INTO tenants (name) VALUES ($1) RETURNING *",
+      [DEMO_TENANT_NAME],
+    );
+    tenantId = (tenantResult.rows[0] as { id: string }).id;
+
+    const passwordHash = await bcrypt.hash(DEMO_PASSWORD, 12);
+    const userResult = await query(
+      `INSERT INTO users (tenant_id, email, password_hash, role)
+       VALUES ($1, $2, $3, 'admin')
+       RETURNING *`,
+      [tenantId, DEMO_EMAIL, passwordHash],
+    );
+    userId = (userResult.rows[0] as { id: string }).id;
+
+    logger.info("created demo tenant and user");
+
+    const baseTime = new Date(Date.now() - 3600_000);
+
+    for (const def of WORKFLOWS) {
+      await seedWorkflow(def, tenantId, userId!, baseTime);
+    }
+
+    logger.info("workflow seed complete");
+  }
+
+  await seedIntegrations(tenantId);
 
   logger.info("seed complete");
 };
