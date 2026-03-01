@@ -8,6 +8,7 @@ import {
   createExecution,
   updateExecutionStatus,
 } from "../models/workflowPg.model.js";
+import { logger } from "../utils/logger.js";
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -199,7 +200,7 @@ export const executeWorkflow = async (
     tenantId,
     triggerPayload,
   ).catch((err) => {
-    console.error("[execution] background run failed:", err);
+    logger.error({ err, workflowId, executionId: execution.id }, "background execution failed");
   });
 
   return execution.id;

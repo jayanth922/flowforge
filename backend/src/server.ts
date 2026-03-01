@@ -2,12 +2,14 @@ import "dotenv/config";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
+import { logger } from "./utils/logger.js";
 import { connectPostgres } from "./db/postgres.js";
 import { connectMongo } from "./db/mongo.js";
 import { runMigrations } from "./db/migrate.js";
 import { seedIfEmpty } from "./db/seed.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
+import { requestLogger } from "./middleware/requestLogger.js";
 import {
   globalLimiter,
   authLimiter,
@@ -31,6 +33,7 @@ app.use(
 );
 app.use(helmet());
 app.use(express.json());
+app.use(requestLogger);
 app.use(globalLimiter);
 
 app.get("/api/v1/health", (_req, res) => {
@@ -58,29 +61,24 @@ const start = async () => {
     await runMigrations();
     await connectPostgres();
   } catch (err) {
-    console.error("[server] failed to start:", err);
+    logger.fatal({ err }, "failed to start");
     process.exit(1);
   }
 
   try {
     await connectMongo();
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn(
-      "[mongo] connection failed, continuing without MongoDB:",
-      message,
-    );
+    logger.warn({ err }, "MongoDB connection failed, continuing without MongoDB");
   }
 
   try {
     await seedIfEmpty();
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.warn("[seed] failed, continuing without seed data:", message);
+    logger.warn({ err }, "seed failed, continuing without seed data");
   }
 
   app.listen(PORT, () => {
-    console.log(`[server] running on http://localhost:${PORT}`);
+    logger.info({ port: PORT }, "server running");
   });
 };
 

@@ -1,11 +1,10 @@
 import type { ErrorRequestHandler } from "express";
+import { logger } from "../utils/logger.js";
 
-export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
+export const errorHandler: ErrorRequestHandler = (err, req, res, _next) => {
   const message = err instanceof Error ? err.message : "Unknown error";
 
-  if (process.env["NODE_ENV"] !== "production") {
-    console.error("[error]", err instanceof Error ? err.stack : err);
-  }
+  logger.error({ err, requestId: req.id }, "unhandled error");
 
   res.status(500).json({
     success: false,

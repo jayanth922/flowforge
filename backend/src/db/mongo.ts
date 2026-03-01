@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { logger } from "../utils/logger.js";
 
 export const connectMongo = async (): Promise<void> => {
   const uri = process.env["MONGODB_URI"];
@@ -7,15 +8,15 @@ export const connectMongo = async (): Promise<void> => {
   }
 
   mongoose.connection.on("connected", () => {
-    console.log("[mongo] connected successfully");
+    logger.info("MongoDB connected");
   });
 
-  mongoose.connection.on("error", (err) => {
-    console.error("[mongo] connection error:", err);
+  mongoose.connection.on("error", (err: unknown) => {
+    logger.error({ err }, "MongoDB connection error");
   });
 
   mongoose.connection.on("disconnected", () => {
-    console.log("[mongo] disconnected");
+    logger.info("MongoDB disconnected");
   });
 
   await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });

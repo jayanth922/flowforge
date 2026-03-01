@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { pool } from "./postgres.js";
+import { logger } from "../utils/logger.js";
 import type pg from "pg";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -60,7 +61,7 @@ export const runMigrations = async (): Promise<void> => {
 
     for (const file of files) {
       if (applied.has(file)) {
-        console.log(`[migrate] skipped (already applied): ${file}`);
+        logger.debug({ file }, "migration already applied, skipping");
         continue;
       }
 
@@ -68,14 +69,12 @@ export const runMigrations = async (): Promise<void> => {
       const sql = await fs.readFile(filePath, "utf-8");
 
       await applyMigration(client, file, sql);
-      console.log(`[migrate] applied: ${file}`);
+      logger.info({ file }, "migration applied");
       count++;
     }
 
     const skipped = files.length - count;
-    console.log(
-      `[migrate] done — ${count} migration(s) applied, ${skipped} already up to date`,
-    );
+    logger.info({ applied: count, skipped }, "migrations complete");
   } finally {
     client.release();
   }
@@ -89,7 +88,7 @@ if (isDirectRun) {
   runMigrations()
     .then(() => pool.end())
     .catch((err) => {
-      console.error("[migrate] failed:", err);
+      logger.fatal({ err }, "migration failed");
       process.exit(1);
     });
 }

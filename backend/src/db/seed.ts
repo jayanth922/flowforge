@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { pool, query } from "./postgres.js";
+import { logger } from "../utils/logger.js";
 import {
   WorkflowDAGModel,
   ExecutionLogModel,
@@ -171,7 +172,7 @@ const seedWorkflow = async (
 
   await ExecutionLogModel.insertMany(logs);
 
-  console.log(`[seed]   workflow: ${def.name} (${def.nodes.length} nodes, 1 execution)`);
+  logger.info({ workflow: def.name, nodes: def.nodes.length }, "seeded workflow");
 };
 
 export const seedIfEmpty = async (): Promise<void> => {
@@ -181,7 +182,7 @@ export const seedIfEmpty = async (): Promise<void> => {
   );
 
   if (existing.rows.length > 0) {
-    console.log("[seed] demo data already exists — skipping");
+    logger.info("seed already applied, skipping");
     return;
   }
 
@@ -200,7 +201,7 @@ export const seedIfEmpty = async (): Promise<void> => {
   );
   const userId = (userResult.rows[0] as { id: string }).id;
 
-  console.log("[seed] created demo tenant and user");
+  logger.info("created demo tenant and user");
 
   const baseTime = new Date(Date.now() - 3600_000);
 
@@ -208,7 +209,7 @@ export const seedIfEmpty = async (): Promise<void> => {
     await seedWorkflow(def, tenantId, userId, baseTime);
   }
 
-  console.log("[seed] done — 1 tenant, 1 user, 3 workflows with executions");
+  logger.info("seed complete");
 };
 
 const isDirectRun =
@@ -225,7 +226,7 @@ if (isDirectRun) {
     .then(() => mongoose.disconnect())
     .then(() => pool.end())
     .catch((err) => {
-      console.error("[seed] failed:", err);
+      logger.fatal({ err }, "seed failed");
       process.exit(1);
     });
 }

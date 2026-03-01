@@ -1,4 +1,5 @@
 import pg from "pg";
+import { logger } from "../utils/logger.js";
 
 const pool = new pg.Pool({
   connectionString: process.env["DATABASE_URL"],
@@ -10,10 +11,10 @@ export const query = (text: string, params?: unknown[]) =>
 export const connectPostgres = async (): Promise<void> => {
   try {
     const client = await pool.connect();
-    console.log("[postgres] connected successfully");
+    logger.info("PostgreSQL connected");
     client.release();
   } catch (err) {
-    console.error("[postgres] connection failed:", err);
+    logger.error({ err }, "PostgreSQL connection failed");
     throw err;
   }
 };
