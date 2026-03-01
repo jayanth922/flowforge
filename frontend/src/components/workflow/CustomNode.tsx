@@ -16,12 +16,6 @@ const NODE_STYLES: Record<
     badge: "bg-blue-500/20 text-blue-300",
     icon: "⚡",
   },
-  action: {
-    bg: "bg-green-900/50",
-    border: "border-green-500",
-    badge: "bg-green-500/20 text-green-300",
-    icon: "▶",
-  },
   condition: {
     bg: "bg-yellow-900/50",
     border: "border-yellow-500",
@@ -39,6 +33,42 @@ const NODE_STYLES: Record<
     border: "border-purple-500",
     badge: "bg-purple-500/20 text-purple-300",
     icon: "🔔",
+  },
+  send_email: {
+    bg: "bg-green-900/50",
+    border: "border-green-500",
+    badge: "bg-green-500/20 text-green-300",
+    icon: "✉",
+  },
+  post_slack: {
+    bg: "bg-emerald-900/50",
+    border: "border-emerald-500",
+    badge: "bg-emerald-500/20 text-emerald-300",
+    icon: "💬",
+  },
+  post_discord: {
+    bg: "bg-indigo-900/50",
+    border: "border-indigo-500",
+    badge: "bg-indigo-500/20 text-indigo-300",
+    icon: "🎮",
+  },
+  create_github_issue: {
+    bg: "bg-gray-800/50",
+    border: "border-gray-500",
+    badge: "bg-gray-500/20 text-gray-300",
+    icon: "🐙",
+  },
+  http_request: {
+    bg: "bg-cyan-900/50",
+    border: "border-cyan-500",
+    badge: "bg-cyan-500/20 text-cyan-300",
+    icon: "🌐",
+  },
+  data_transform: {
+    bg: "bg-pink-900/50",
+    border: "border-pink-500",
+    badge: "bg-pink-500/20 text-pink-300",
+    icon: "🔀",
   },
 };
 

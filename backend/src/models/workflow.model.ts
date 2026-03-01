@@ -2,10 +2,15 @@ import mongoose, { Schema, type Document } from "mongoose";
 
 export type NodeType =
   | "trigger"
-  | "action"
   | "condition"
   | "delay"
-  | "notification";
+  | "notification"
+  | "send_email"
+  | "post_slack"
+  | "post_discord"
+  | "create_github_issue"
+  | "http_request"
+  | "data_transform";
 
 export type StepStatus =
   | "pending"
@@ -63,7 +68,18 @@ const dagNodeSchema = new Schema(
     type: {
       type: String,
       required: true,
-      enum: ["trigger", "action", "condition", "delay", "notification"],
+      enum: [
+        "trigger",
+        "condition",
+        "delay",
+        "notification",
+        "send_email",
+        "post_slack",
+        "post_discord",
+        "create_github_issue",
+        "http_request",
+        "data_transform",
+      ],
     },
     label: { type: String, required: true },
     config: { type: Schema.Types.Mixed, default: {} },

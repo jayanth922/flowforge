@@ -2,10 +2,15 @@ import { z } from "zod";
 
 export const nodeTypeEnum = z.enum([
   "trigger",
-  "action",
   "condition",
   "delay",
   "notification",
+  "send_email",
+  "post_slack",
+  "post_discord",
+  "create_github_issue",
+  "http_request",
+  "data_transform",
 ]);
 
 export const dagNodeSchema = z.object({

@@ -26,10 +26,15 @@ export interface Workflow {
 
 export type NodeType =
   | "trigger"
-  | "action"
   | "condition"
   | "delay"
-  | "notification";
+  | "notification"
+  | "send_email"
+  | "post_slack"
+  | "post_discord"
+  | "create_github_issue"
+  | "http_request"
+  | "data_transform";
 
 export interface DAGNode {
   id: string;

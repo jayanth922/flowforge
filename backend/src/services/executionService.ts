@@ -9,12 +9,19 @@ import {
   updateExecutionStatus,
 } from "../models/workflowPg.model.js";
 import { logger } from "../utils/logger.js";
+import { integrationRegistry, renderTemplate } from "../integrations/index.js";
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
+const DEMO_DELAY_CAP_MS = 2000;
+
+interface ExecutionContext {
+  payload: Record<string, unknown>;
+  steps: Record<string, { output: Record<string, unknown> }>;
+}
 
 const topologicalSort = (nodes: IDAGNode[], edges: IDAGEdge[]): IDAGNode[] => {
   const adjacency = new Map<string, string[]>();
@@ -53,31 +60,138 @@ const topologicalSort = (nodes: IDAGNode[], edges: IDAGEdge[]): IDAGNode[] => {
   return sorted;
 };
 
-const simulateNode = async (
+const extractByPath = (obj: unknown, path: string): unknown => {
+  let current: unknown = obj;
+  for (const segment of path.split(".")) {
+    if (current === null || current === undefined) return undefined;
+    if (Array.isArray(current)) {
+      const idx = Number(segment);
+      if (Number.isNaN(idx)) return undefined;
+      current = current[idx];
+    } else if (typeof current === "object") {
+      current = (current as Record<string, unknown>)[segment];
+    } else {
+      return undefined;
+    }
+  }
+  return current;
+};
+
+const evaluateCondition = (rendered: string): boolean => {
+  const trimmed = rendered.trim();
+
+  const match = trimmed.match(
+    /^(.+?)\s*(>=|<=|!=|==|>|<)\s*(.+?)$/,
+  );
+  if (!match) return true;
+
+  const [, leftRaw, operator, rightRaw] = match;
+  const left = leftRaw!.trim();
+  const right = rightRaw!.trim();
+
+  const leftNum = Number(left);
+  const rightNum = Number(right);
+  const bothNumeric = !Number.isNaN(leftNum) && !Number.isNaN(rightNum);
+
+  switch (operator) {
+    case ">":
+      return bothNumeric ? leftNum > rightNum : left > right;
+    case "<":
+      return bothNumeric ? leftNum < rightNum : left < right;
+    case ">=":
+      return bothNumeric ? leftNum >= rightNum : left >= right;
+    case "<=":
+      return bothNumeric ? leftNum <= rightNum : left <= right;
+    case "==":
+      return bothNumeric ? leftNum === rightNum : left === right;
+    case "!=":
+      return bothNumeric ? leftNum !== rightNum : left !== right;
+    default:
+      return true;
+  }
+};
+
+const executeNodeAction = async (
   node: IDAGNode,
-  context: Map<string, Record<string, unknown>>,
+  context: ExecutionContext,
 ): Promise<Record<string, unknown>> => {
+  const ctxRecord = context as unknown as Record<string, unknown>;
+
   switch (node.type) {
     case "trigger": {
-      const payload = context.get("trigger_payload") ?? {};
-      return { event: "trigger_fired", payload };
+      return { event: "trigger_fired", payload: context.payload };
     }
-    case "action": {
-      await sleep(1500);
-      return { success: true, message: `Executed: ${node.label}` };
+
+    case "send_email":
+    case "post_slack":
+    case "post_discord":
+    case "create_github_issue":
+    case "http_request": {
+      const handler = integrationRegistry[node.type];
+      if (!handler) {
+        throw new Error(`No integration handler for type: ${node.type}`);
+      }
+      const result = await handler(node.config, ctxRecord);
+      if (!result.success) {
+        throw new Error(result.error ?? `${node.type} integration failed`);
+      }
+      return result.data ?? {};
     }
+
     case "condition": {
-      return { result: true, evaluated: node.label };
+      const expression =
+        typeof node.config["expression"] === "string"
+          ? node.config["expression"]
+          : "";
+      const rendered = renderTemplate(expression, ctxRecord);
+      const result = evaluateCondition(rendered);
+      return { result, expression: rendered, evaluated: true };
     }
+
     case "delay": {
-      await sleep(2000);
-      return { waited: true, duration: "2s (capped for demo)" };
+      const duration =
+        typeof node.config["duration"] === "number"
+          ? node.config["duration"]
+          : 1;
+      const unit =
+        typeof node.config["unit"] === "string"
+          ? node.config["unit"]
+          : "seconds";
+
+      let ms = duration * 1000;
+      if (unit === "minutes") ms = duration * 60_000;
+      else if (unit === "hours") ms = duration * 3_600_000;
+
+      const capped = Math.min(ms, DEMO_DELAY_CAP_MS);
+      await sleep(capped);
+      return { waited: true, duration: `${capped}ms (capped for demo)` };
     }
+
+    case "data_transform": {
+      const extractPath =
+        typeof node.config["extractPath"] === "string"
+          ? node.config["extractPath"]
+          : "";
+      const outputKey =
+        typeof node.config["outputKey"] === "string"
+          ? node.config["outputKey"]
+          : "extracted";
+
+      const extracted = extractByPath(ctxRecord, extractPath);
+      return { [outputKey]: extracted };
+    }
+
     case "notification": {
       await sleep(1000);
+      const message =
+        typeof node.config["message"] === "string"
+          ? renderTemplate(node.config["message"], ctxRecord)
+          : node.label;
       const recipient =
-        typeof node.config["to"] === "string" ? node.config["to"] : "admin";
-      return { notified: true, recipient };
+        typeof node.config["to"] === "string"
+          ? renderTemplate(node.config["to"], ctxRecord)
+          : "admin";
+      return { notified: true, recipient, message };
     }
   }
 };
@@ -87,7 +201,7 @@ const executeNode = async (
   executionId: string,
   workflowId: string,
   tenantId: string,
-  context: Map<string, Record<string, unknown>>,
+  context: ExecutionContext,
 ): Promise<Record<string, unknown>> => {
   const log = await ExecutionLogModel.create({
     executionId,
@@ -96,7 +210,7 @@ const executeNode = async (
     stepId: node.id,
     stepLabel: node.label,
     status: "running",
-    input: Object.fromEntries(context),
+    input: context,
   });
 
   let lastError: unknown;
@@ -105,7 +219,7 @@ const executeNode = async (
     try {
       if (attempt > 0) await sleep(RETRY_DELAY_MS);
 
-      const output = await simulateNode(node, context);
+      const output = await executeNodeAction(node, context);
 
       await ExecutionLogModel.updateOne(
         { _id: log._id },
@@ -117,7 +231,7 @@ const executeNode = async (
         },
       );
 
-      context.set(node.id, output);
+      context.steps[node.id] = { output };
       return output;
     } catch (err) {
       lastError = err;
@@ -149,8 +263,10 @@ const runExecution = async (
   triggerPayload: Record<string, unknown>,
 ): Promise<void> => {
   const sorted = topologicalSort(nodes, edges);
-  const context = new Map<string, Record<string, unknown>>();
-  context.set("trigger_payload", triggerPayload);
+  const context: ExecutionContext = {
+    payload: triggerPayload,
+    steps: {},
+  };
 
   let failed = false;
 
