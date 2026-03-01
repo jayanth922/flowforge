@@ -10,6 +10,7 @@ import {
 } from "../models/workflowPg.model.js";
 import { logger } from "../utils/logger.js";
 import { integrationRegistry, renderTemplate } from "../integrations/index.js";
+import { getIntegrationById } from "../models/integrationPg.model.js";
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
@@ -111,9 +112,25 @@ const evaluateCondition = (rendered: string): boolean => {
   }
 };
 
+const resolveCredentials = async (
+  node: IDAGNode,
+  tenantId: string,
+): Promise<Record<string, unknown> | undefined> => {
+  const integrationId = node.config["integrationId"];
+  if (typeof integrationId !== "string" || integrationId === "PLACEHOLDER") {
+    return undefined;
+  }
+  const integration = await getIntegrationById(integrationId, tenantId);
+  if (!integration) {
+    throw new Error("Integration not found or access denied");
+  }
+  return integration.decryptedCredentials;
+};
+
 const executeNodeAction = async (
   node: IDAGNode,
   context: ExecutionContext,
+  tenantId: string,
 ): Promise<Record<string, unknown>> => {
   const ctxRecord = context as unknown as Record<string, unknown>;
 
@@ -122,7 +139,14 @@ const executeNodeAction = async (
       return { event: "trigger_fired", payload: context.payload };
     }
 
-    case "send_email":
+    case "send_email": {
+      const handler = integrationRegistry["send_email"];
+      if (!handler) throw new Error("No handler for send_email");
+      const result = await handler(node.config, ctxRecord);
+      if (!result.success) throw new Error(result.error ?? "send_email failed");
+      return result.data ?? {};
+    }
+
     case "post_slack":
     case "post_discord":
     case "create_github_issue":
@@ -131,7 +155,8 @@ const executeNodeAction = async (
       if (!handler) {
         throw new Error(`No integration handler for type: ${node.type}`);
       }
-      const result = await handler(node.config, ctxRecord);
+      const credentials = await resolveCredentials(node, tenantId);
+      const result = await handler(node.config, ctxRecord, credentials);
       if (!result.success) {
         throw new Error(result.error ?? `${node.type} integration failed`);
       }
@@ -219,7 +244,7 @@ const executeNode = async (
     try {
       if (attempt > 0) await sleep(RETRY_DELAY_MS);
 
-      const output = await executeNodeAction(node, context);
+      const output = await executeNodeAction(node, context, tenantId);
 
       await ExecutionLogModel.updateOne(
         { _id: log._id },

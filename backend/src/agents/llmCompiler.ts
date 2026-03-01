@@ -67,7 +67,8 @@ RULES:
 5. Node labels: max 4 words, concise.
 6. Sequential IDs: nodes as "node_1", "node_2"..., edges as "edge_1", "edge_2"...
 7. Chain data correctly: later nodes reference earlier outputs via {{steps.node_X.output.field}}.
-8. Output ONLY raw JSON. No markdown, no code fences, no explanations.`;
+8. Output ONLY raw JSON. No markdown, no code fences, no explanations.
+9. For nodes requiring integrations (post_slack, post_discord, create_github_issue, http_request), set config.integrationId to "PLACEHOLDER". The user will select a real integration from their connected accounts.`;
 
 const MAX_RETRIES = 1;
 

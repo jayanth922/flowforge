@@ -6,6 +6,7 @@ import RegisterPage from "./pages/RegisterPage";
 import DashboardPage from "./pages/DashboardPage";
 import WorkflowEditorPage from "./pages/WorkflowEditorPage";
 import TemplatesPage from "./pages/TemplatesPage";
+import IntegrationsPage from "./pages/IntegrationsPage";
 
 const RootRedirect = () => {
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
@@ -24,6 +25,14 @@ const App = () => {
         element={
           <ProtectedRoute>
             <DashboardPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/integrations"
+        element={
+          <ProtectedRoute>
+            <IntegrationsPage />
           </ProtectedRoute>
         }
       />

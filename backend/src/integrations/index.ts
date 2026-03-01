@@ -8,6 +8,7 @@ import { makeHttpRequest } from "./httpRequest.js";
 export type IntegrationHandler = (
   config: Record<string, unknown>,
   context: Record<string, unknown>,
+  credentials?: Record<string, unknown>,
 ) => Promise<IntegrationResult>;
 
 const asHandler = (fn: unknown): IntegrationHandler => fn as IntegrationHandler;

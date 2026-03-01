@@ -29,6 +29,7 @@ const extractByPath = (obj: unknown, path: string): unknown => {
 export const makeHttpRequest = async (
   config: HttpRequestConfig,
   context: Record<string, unknown>,
+  credentials?: Record<string, unknown>,
 ): Promise<IntegrationResult> => {
   const url = renderTemplate(config.url, context);
 
@@ -36,6 +37,12 @@ export const makeHttpRequest = async (
   if (config.headers) {
     for (const [key, value] of Object.entries(config.headers)) {
       headers[key] = renderTemplate(value, context);
+    }
+  }
+  const credHeaders = credentials?.["headers"];
+  if (credHeaders && typeof credHeaders === "object" && credHeaders !== null) {
+    for (const [key, value] of Object.entries(credHeaders as Record<string, string>)) {
+      headers[key] = value;
     }
   }
 

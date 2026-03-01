@@ -34,6 +34,12 @@ const NavHeader = () => {
           >
             Templates
           </Link>
+          <Link
+            to="/integrations"
+            className="text-sm text-gray-400 transition-colors hover:text-white"
+          >
+            Integrations
+          </Link>
         </div>
 
         <div className="flex items-center gap-4">

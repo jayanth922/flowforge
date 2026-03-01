@@ -13,11 +13,19 @@ interface GithubIssueConfig {
 export const createGithubIssue = async (
   config: GithubIssueConfig,
   context: Record<string, unknown>,
+  credentials?: Record<string, unknown>,
 ): Promise<IntegrationResult> => {
-  const token = process.env["GITHUB_TOKEN"];
+  const token =
+    (credentials?.["token"] as string | undefined) ??
+    process.env["GITHUB_TOKEN"];
   if (!token) {
-    return { success: false, error: "GITHUB_TOKEN not configured" };
+    return { success: false, error: "No GitHub token configured" };
   }
+
+  const owner =
+    (credentials?.["owner"] as string | undefined) ?? config.owner;
+  const repo =
+    (credentials?.["repo"] as string | undefined) ?? config.repo;
 
   const title = renderTemplate(config.title, context);
   const body = renderTemplate(config.body, context);
@@ -25,8 +33,8 @@ export const createGithubIssue = async (
   try {
     const octokit = new Octokit({ auth: token });
     const response = await octokit.rest.issues.create({
-      owner: config.owner,
-      repo: config.repo,
+      owner,
+      repo,
       title,
       body,
       labels: config.labels,

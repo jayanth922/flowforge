@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   compileWorkflow,
@@ -8,14 +8,16 @@ import {
   enableWebhook,
   disableWebhook,
   validateCron,
+  listIntegrations,
   type CronValidationResponse,
+  type IntegrationSummary,
 } from "../services/api";
 import { useExecutionStatus } from "../hooks/useExecutionStatus";
 import NavHeader from "../components/NavHeader";
 import PromptPanel from "../components/workflow/PromptPanel";
 import WorkflowCanvas from "../components/workflow/WorkflowCanvas";
 import ExecutionLogPanel from "../components/workflow/ExecutionLogPanel";
-import type { DAGNode, DAGEdge, StepStatus } from "../types/api";
+import type { DAGNode, DAGEdge, StepStatus, NodeType } from "../types/api";
 import "@xyflow/react/dist/style.css";
 
 const Spinner = () => (
@@ -66,6 +68,9 @@ const WorkflowEditorPage = () => {
   const [cronExpr, setCronExpr] = useState("");
   const [cronValidation, setCronValidation] = useState<CronValidationResponse | null>(null);
   const [cronValidating, setCronValidating] = useState(false);
+
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [availableIntegrations, setAvailableIntegrations] = useState<IntegrationSummary[]>([]);
 
   const [executionId, setExecutionId] = useState<string | null>(null);
   const { executionStatus, steps, isRunning } =
@@ -224,6 +229,49 @@ const WorkflowEditorPage = () => {
       setCronValidating(false);
     }
   };
+
+  const selectedNode = useMemo(
+    () => (selectedNodeId ? nodes.find((n) => n.id === selectedNodeId) ?? null : null),
+    [selectedNodeId, nodes],
+  );
+
+  const serviceForNodeType = (type: NodeType): string | null => {
+    switch (type) {
+      case "post_slack": return "slack";
+      case "post_discord": return "discord";
+      case "create_github_issue": return "github";
+      case "http_request": return "http";
+      default: return null;
+    }
+  };
+
+  const handleNodeClick = useCallback(
+    (nodeId: string) => {
+      setSelectedNodeId(nodeId);
+      const node = nodes.find((n) => n.id === nodeId);
+      if (!node) return;
+      const svc = serviceForNodeType(node.type);
+      if (svc) {
+        listIntegrations(svc)
+          .then(setAvailableIntegrations)
+          .catch(() => setAvailableIntegrations([]));
+      } else {
+        setAvailableIntegrations([]);
+      }
+    },
+    [nodes],
+  );
+
+  const updateNodeConfig = useCallback(
+    (nodeId: string, key: string, value: unknown) => {
+      setNodes((prev) =>
+        prev.map((n) =>
+          n.id === nodeId ? { ...n, config: { ...n.config, [key]: value } } : n,
+        ),
+      );
+    },
+    [],
+  );
 
   const triggerType = useMemo(() => {
     const triggerNode = nodes.find((n) => n.type === "trigger");
@@ -394,12 +442,24 @@ const WorkflowEditorPage = () => {
             </div>
           )}
 
-          <div className="flex-1">
-            <WorkflowCanvas
-              nodes={nodes}
-              edges={edges}
-              stepStatuses={stepStatuses}
-            />
+          <div className="flex flex-1 overflow-hidden">
+            <div className={selectedNode ? "flex-1" : "w-full"}>
+              <WorkflowCanvas
+                nodes={nodes}
+                edges={edges}
+                stepStatuses={stepStatuses}
+                onNodeClick={handleNodeClick}
+              />
+            </div>
+
+            {selectedNode && (
+              <NodeConfigPanel
+                node={selectedNode}
+                integrations={availableIntegrations}
+                onUpdateConfig={updateNodeConfig}
+                onClose={() => setSelectedNodeId(null)}
+              />
+            )}
           </div>
 
           <ExecutionLogPanel steps={steps} status={executionStatus} />
@@ -408,5 +468,285 @@ const WorkflowEditorPage = () => {
     </div>
   );
 };
+
+interface NodeConfigPanelProps {
+  node: DAGNode;
+  integrations: IntegrationSummary[];
+  onUpdateConfig: (nodeId: string, key: string, value: unknown) => void;
+  onClose: () => void;
+}
+
+const INTEGRATION_NODE_TYPES: NodeType[] = [
+  "post_slack",
+  "post_discord",
+  "create_github_issue",
+  "http_request",
+];
+
+const NODE_TYPE_LABELS: Record<string, string> = {
+  trigger: "Trigger",
+  condition: "Condition",
+  delay: "Delay",
+  notification: "Notification",
+  send_email: "Send Email",
+  post_slack: "Post to Slack",
+  post_discord: "Post to Discord",
+  create_github_issue: "Create GitHub Issue",
+  http_request: "HTTP Request",
+  data_transform: "Data Transform",
+};
+
+const NodeConfigPanel = ({
+  node,
+  integrations,
+  onUpdateConfig,
+  onClose,
+}: NodeConfigPanelProps) => {
+  const needsIntegration = INTEGRATION_NODE_TYPES.includes(node.type);
+  const currentIntegrationId =
+    (node.config["integrationId"] as string | undefined) ?? "";
+
+  return (
+    <div className="w-72 shrink-0 overflow-y-auto border-l border-gray-800 bg-gray-900 p-4">
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="text-sm font-semibold text-white">
+          {NODE_TYPE_LABELS[node.type] ?? node.type}
+        </h3>
+        <button
+          onClick={onClose}
+          className="text-xs text-gray-500 hover:text-gray-300"
+        >
+          Close
+        </button>
+      </div>
+
+      <p className="mb-4 text-xs text-gray-400">{node.label}</p>
+
+      {needsIntegration && (
+        <div className="mb-4">
+          <label className="mb-1 block text-xs text-gray-400">
+            Integration
+          </label>
+          <select
+            value={currentIntegrationId}
+            onChange={(e) =>
+              onUpdateConfig(node.id, "integrationId", e.target.value)
+            }
+            className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+          >
+            <option value="">Select integration...</option>
+            <option value="PLACEHOLDER" disabled>
+              -- Not configured --
+            </option>
+            {integrations.map((ig) => (
+              <option key={ig.id} value={ig.id}>
+                {ig.name}
+              </option>
+            ))}
+          </select>
+          {integrations.length === 0 && (
+            <p className="mt-1 text-[10px] text-gray-500">
+              No integrations connected. Go to Integrations page to add one.
+            </p>
+          )}
+        </div>
+      )}
+
+      {(node.type === "post_slack" || node.type === "post_discord") && (
+        <ConfigField
+          label="Message"
+          type="textarea"
+          value={(node.config["message"] as string) ?? ""}
+          hint="Use {{payload.field}} for dynamic values"
+          onChange={(v) => onUpdateConfig(node.id, "message", v)}
+        />
+      )}
+
+      {node.type === "send_email" && (
+        <>
+          <ConfigField
+            label="To"
+            type="text"
+            value={(node.config["to"] as string) ?? ""}
+            hint="Email or {{payload.email}}"
+            onChange={(v) => onUpdateConfig(node.id, "to", v)}
+          />
+          <ConfigField
+            label="Subject"
+            type="text"
+            value={(node.config["subject"] as string) ?? ""}
+            onChange={(v) => onUpdateConfig(node.id, "subject", v)}
+          />
+          <ConfigField
+            label="Body"
+            type="textarea"
+            value={(node.config["body"] as string) ?? ""}
+            onChange={(v) => onUpdateConfig(node.id, "body", v)}
+          />
+        </>
+      )}
+
+      {node.type === "create_github_issue" && (
+        <>
+          <ConfigField
+            label="Title"
+            type="text"
+            value={(node.config["title"] as string) ?? ""}
+            onChange={(v) => onUpdateConfig(node.id, "title", v)}
+          />
+          <ConfigField
+            label="Body"
+            type="textarea"
+            value={(node.config["body"] as string) ?? ""}
+            onChange={(v) => onUpdateConfig(node.id, "body", v)}
+          />
+          <ConfigField
+            label="Labels (comma-separated)"
+            type="text"
+            value={
+              Array.isArray(node.config["labels"])
+                ? (node.config["labels"] as string[]).join(", ")
+                : ""
+            }
+            onChange={(v) =>
+              onUpdateConfig(
+                node.id,
+                "labels",
+                v
+                  .split(",")
+                  .map((s: string) => s.trim())
+                  .filter(Boolean),
+              )
+            }
+          />
+        </>
+      )}
+
+      {node.type === "http_request" && (
+        <>
+          <div className="mb-3">
+            <label className="mb-1 block text-xs text-gray-400">Method</label>
+            <select
+              value={(node.config["method"] as string) ?? "GET"}
+              onChange={(e) =>
+                onUpdateConfig(node.id, "method", e.target.value)
+              }
+              className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+            >
+              {["GET", "POST", "PUT", "PATCH", "DELETE"].map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
+            </select>
+          </div>
+          <ConfigField
+            label="URL"
+            type="text"
+            value={(node.config["url"] as string) ?? ""}
+            onChange={(v) => onUpdateConfig(node.id, "url", v)}
+          />
+          <ConfigField
+            label="Body (JSON)"
+            type="textarea"
+            value={(node.config["body"] as string) ?? ""}
+            onChange={(v) => onUpdateConfig(node.id, "body", v)}
+          />
+          <ConfigField
+            label="Extract Path"
+            type="text"
+            value={(node.config["extractPath"] as string) ?? ""}
+            hint='e.g. "data.items.0.title"'
+            onChange={(v) => onUpdateConfig(node.id, "extractPath", v)}
+          />
+        </>
+      )}
+
+      {node.type === "condition" && (
+        <ConfigField
+          label="Expression"
+          type="text"
+          value={(node.config["expression"] as string) ?? ""}
+          hint="e.g. {{payload.amount}} > 500"
+          onChange={(v) => onUpdateConfig(node.id, "expression", v)}
+        />
+      )}
+
+      {node.type === "delay" && (
+        <>
+          <ConfigField
+            label="Duration"
+            type="text"
+            value={String(node.config["duration"] ?? "")}
+            onChange={(v) => onUpdateConfig(node.id, "duration", Number(v) || 0)}
+          />
+          <div className="mb-3">
+            <label className="mb-1 block text-xs text-gray-400">Unit</label>
+            <select
+              value={(node.config["unit"] as string) ?? "seconds"}
+              onChange={(e) =>
+                onUpdateConfig(node.id, "unit", e.target.value)
+              }
+              className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+            >
+              {["seconds", "minutes", "hours"].map((u) => (
+                <option key={u} value={u}>
+                  {u}
+                </option>
+              ))}
+            </select>
+          </div>
+        </>
+      )}
+
+      {node.type === "data_transform" && (
+        <>
+          <ConfigField
+            label="Extract Path"
+            type="text"
+            value={(node.config["extractPath"] as string) ?? ""}
+            onChange={(v) => onUpdateConfig(node.id, "extractPath", v)}
+          />
+          <ConfigField
+            label="Output Key"
+            type="text"
+            value={(node.config["outputKey"] as string) ?? ""}
+            onChange={(v) => onUpdateConfig(node.id, "outputKey", v)}
+          />
+        </>
+      )}
+    </div>
+  );
+};
+
+interface ConfigFieldProps {
+  label: string;
+  type: "text" | "textarea";
+  value: string;
+  hint?: string;
+  onChange: (value: string) => void;
+}
+
+const ConfigField = ({ label, type, value, hint, onChange }: ConfigFieldProps) => (
+  <div className="mb-3">
+    <label className="mb-1 block text-xs text-gray-400">{label}</label>
+    {type === "textarea" ? (
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={3}
+        className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
+      />
+    ) : (
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
+      />
+    )}
+    {hint && <p className="mt-0.5 text-[10px] text-gray-500">{hint}</p>}
+  </div>
+);
 
 export default WorkflowEditorPage;

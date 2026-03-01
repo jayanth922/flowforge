@@ -155,3 +155,54 @@ export const getExecutionStatus = async (
   }>(`/executions/${executionId}/status`);
   return res.data.data;
 };
+
+export interface IntegrationSummary {
+  id: string;
+  tenant_id: string;
+  service: "slack" | "discord" | "github" | "http";
+  name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export const listIntegrations = async (
+  service?: string,
+): Promise<IntegrationSummary[]> => {
+  const params = service ? { service } : {};
+  const res = await api.get<{ success: true; data: IntegrationSummary[] }>(
+    "/integrations",
+    { params },
+  );
+  return res.data.data;
+};
+
+export const createIntegration = async (
+  service: string,
+  name: string,
+  credentials: Record<string, unknown>,
+): Promise<IntegrationSummary> => {
+  const res = await api.post<{ success: true; data: IntegrationSummary }>(
+    "/integrations",
+    { service, name, credentials },
+  );
+  return res.data.data;
+};
+
+export const deleteIntegration = async (id: string): Promise<void> => {
+  await api.delete(`/integrations/${id}`);
+};
+
+export const testIntegration = async (
+  service: string,
+  credentials: Record<string, unknown>,
+): Promise<{ success: boolean; message?: string; error?: string }> => {
+  const res = await api.post<{
+    success: boolean;
+    data?: { message: string };
+    error?: string;
+  }>("/integrations/test", { service, credentials });
+  if (res.data.success) {
+    return { success: true, message: res.data.data?.message };
+  }
+  return { success: false, error: res.data.error };
+};

@@ -13,6 +13,7 @@ interface WorkflowCanvasProps {
   nodes: DAGNode[];
   edges: DAGEdge[];
   stepStatuses?: Map<string, StepStatus>;
+  onNodeClick?: (nodeId: string) => void;
 }
 
 const nodeTypes = { custom: CustomNode } as const;
@@ -47,6 +48,7 @@ const WorkflowCanvas = ({
   nodes,
   edges,
   stepStatuses,
+  onNodeClick,
 }: WorkflowCanvasProps) => {
   if (nodes.length === 0) {
     return (
@@ -66,6 +68,7 @@ const WorkflowCanvas = ({
       fitView
       proOptions={{ hideAttribution: true }}
       className="bg-gray-900"
+      onNodeClick={(_, node) => onNodeClick?.(node.id)}
     >
       <Controls className="!bg-gray-800 !border-gray-700 !shadow-lg [&>button]:!bg-gray-800 [&>button]:!border-gray-700 [&>button]:!text-gray-300 [&>button:hover]:!bg-gray-700" />
       <Background variant={BackgroundVariant.Dots} color="#374151" gap={20} />
