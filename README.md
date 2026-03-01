@@ -44,6 +44,35 @@ FlowForge is a workflow automation engine that lets you describe business proces
 
 5. **Start the app**
    ```bash
-   npm run dev --prefix backend   # API at http://localhost:4000
-   npm run dev --prefix frontend  # UI  at http://localhost:5173
+   npm run dev --prefix backend   # API at http://localhost:3001
+   npm run dev --prefix frontend  # UI  at http://localhost:3000
    ```
+
+## Deployment (Zero-Cost)
+
+Deploy for free using Render (backend) + Vercel (frontend) + Supabase (PostgreSQL) + MongoDB Atlas (free tier).
+
+1. **Push to GitHub** and create a new repository
+
+2. **Deploy backend on Render**
+   - New → Web Service → connect your repo
+   - Render auto-detects `render.yaml`
+   - Set env vars: `DATABASE_URL`, `MONGODB_URI`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `GROQ_API_KEY`, `NODE_ENV=production`
+   - Deploy and copy the `.onrender.com` URL
+
+3. **Deploy frontend on Vercel**
+   - Import repo → set Root Directory to `frontend` → Framework: Vite
+   - Add env var: `VITE_API_URL=https://your-backend.onrender.com/api/v1`
+   - Deploy and copy the `.vercel.app` URL
+
+4. **Set CORS** — go back to Render, add env var:
+   ```
+   FRONTEND_URL=https://your-project.vercel.app
+   ```
+
+5. **Seed demo data** — run locally with production credentials:
+   ```bash
+   DATABASE_URL="postgresql://..." MONGODB_URI="mongodb+srv://..." npm run seed --prefix backend
+   ```
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for the full env var reference.

@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: flowforge-backend
+    env: docker
+    dockerfilePath: ./backend/Dockerfile
+    plan: free
+    healthCheckPath: /api/v1/health
