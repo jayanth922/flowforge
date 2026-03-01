@@ -18,5 +18,5 @@ export const connectMongo = async (): Promise<void> => {
     console.log("[mongo] disconnected");
   });
 
-  await mongoose.connect(uri);
+  await mongoose.connect(uri, { serverSelectionTimeoutMS: 5000 });
 };

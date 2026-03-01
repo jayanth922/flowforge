@@ -47,15 +47,24 @@ app.use(errorHandler);
 const start = async () => {
   try {
     await connectPostgres();
-    await connectMongo();
-
-    app.listen(PORT, () => {
-      console.log(`[server] running on http://localhost:${PORT}`);
-    });
   } catch (err) {
     console.error("[server] failed to start:", err);
     process.exit(1);
   }
+
+  try {
+    await connectMongo();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(
+      "[mongo] connection failed, continuing without MongoDB:",
+      message,
+    );
+  }
+
+  app.listen(PORT, () => {
+    console.log(`[server] running on http://localhost:${PORT}`);
+  });
 };
 
 start();
