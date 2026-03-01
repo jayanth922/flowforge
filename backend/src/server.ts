@@ -6,6 +6,7 @@ import { connectPostgres } from "./db/postgres.js";
 import { connectMongo } from "./db/mongo.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
+import { authRouter } from "./routes/auth.js";
 
 const app = express();
 const PORT = process.env["PORT"] ?? 4000;
@@ -23,6 +24,8 @@ app.get("/api/v1/health", (_req, res) => {
     },
   });
 });
+
+app.use("/api/v1/auth", authRouter);
 
 app.use(notFound);
 app.use(errorHandler);
