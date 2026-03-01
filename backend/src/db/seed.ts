@@ -15,6 +15,7 @@ import {
   createIntegration,
   type IntegrationService,
 } from "../models/integrationPg.model.js";
+import { decrypt } from "../utils/encryption.js";
 
 const DEMO_EMAIL = "demo@flowforge.com";
 const DEMO_PASSWORD = "Demo1234!";
@@ -186,54 +187,81 @@ const seedWorkflow = async (
   logger.info({ workflow: def.name, nodes: def.nodes.length }, "seeded workflow");
 };
 
-const seedIntegrations = async (tenantId: string): Promise<void> => {
-  const countResult = await query(
-    "SELECT COUNT(*)::int AS cnt FROM tenant_integrations WHERE tenant_id = $1",
+const areIntegrationsValid = async (tenantId: string): Promise<boolean> => {
+  const result = await query(
+    "SELECT id, service, credentials FROM tenant_integrations WHERE tenant_id = $1",
     [tenantId],
   );
-  const count = (countResult.rows[0] as { cnt: number }).cnt;
 
-  if (count > 0) {
-    logger.info("integrations already seeded, skipping");
+  if (result.rows.length === 0) return false;
+
+  for (const row of result.rows as { id: string; service: string; credentials: string }[]) {
+    try {
+      const creds = JSON.parse(decrypt(row.credentials)) as Record<string, unknown>;
+
+      if (row.service === "slack") {
+        const url = creds["webhookUrl"];
+        if (typeof url !== "string" || !url.startsWith("https://hooks.slack.com")) {
+          return false;
+        }
+      }
+    } catch {
+      return false;
+    }
+  }
+
+  return true;
+};
+
+const REQUIRED_INTEGRATION_VARS = [
+  "DEMO_SLACK_WEBHOOK",
+  "DEMO_DISCORD_WEBHOOK",
+  "GITHUB_TOKEN",
+  "GITHUB_OWNER",
+] as const;
+
+const seedIntegrations = async (tenantId: string): Promise<void> => {
+  const missing = REQUIRED_INTEGRATION_VARS.filter(
+    (v) => !process.env[v]?.trim(),
+  );
+  if (missing.length > 0) {
+    logger.warn(
+      { missing },
+      "integration env vars missing, skipping integration seeding",
+    );
     return;
   }
+
+  const valid = await areIntegrationsValid(tenantId);
+  if (valid) {
+    logger.info("integrations valid, skipping");
+    return;
+  }
+
+  await query("DELETE FROM tenant_integrations WHERE tenant_id = $1", [tenantId]);
+  logger.info("cleared stale integrations for demo tenant");
 
   const integrationIds: Record<string, string> = {};
 
-  const slackWebhook = process.env["DEMO_SLACK_WEBHOOK"];
-  if (slackWebhook) {
-    const row = await createIntegration(tenantId, "slack", "Demo Slack", {
-      webhookUrl: slackWebhook,
-    });
-    integrationIds["slack"] = row.id;
-    logger.info("seeded Slack integration");
-  }
+  const slackRow = await createIntegration(tenantId, "slack", "Demo Slack", {
+    webhookUrl: process.env["DEMO_SLACK_WEBHOOK"]!,
+  });
+  integrationIds["slack"] = slackRow.id;
+  logger.info("seeded Slack integration");
 
-  const discordWebhook = process.env["DEMO_DISCORD_WEBHOOK"];
-  if (discordWebhook) {
-    const row = await createIntegration(tenantId, "discord", "Demo Discord", {
-      webhookUrl: discordWebhook,
-    });
-    integrationIds["discord"] = row.id;
-    logger.info("seeded Discord integration");
-  }
+  const discordRow = await createIntegration(tenantId, "discord", "Demo Discord", {
+    webhookUrl: process.env["DEMO_DISCORD_WEBHOOK"]!,
+  });
+  integrationIds["discord"] = discordRow.id;
+  logger.info("seeded Discord integration");
 
-  const ghToken = process.env["GITHUB_TOKEN"];
-  const ghOwner = process.env["GITHUB_OWNER"];
-  if (ghToken && ghOwner) {
-    const row = await createIntegration(tenantId, "github", "Demo GitHub", {
-      token: ghToken,
-      owner: ghOwner,
-      repo: "flowforge-demo-events",
-    });
-    integrationIds["github"] = row.id;
-    logger.info("seeded GitHub integration");
-  }
-
-  if (Object.keys(integrationIds).length === 0) {
-    logger.info("no integration env vars set, skipping DAG patching");
-    return;
-  }
+  const ghRow = await createIntegration(tenantId, "github", "Demo GitHub", {
+    token: process.env["GITHUB_TOKEN"]!,
+    owner: process.env["GITHUB_OWNER"]!,
+    repo: "flowforge-demo-events",
+  });
+  integrationIds["github"] = ghRow.id;
+  logger.info("seeded GitHub integration");
 
   const nodeTypeToService: Record<string, string> = {
     post_slack: "slack",
@@ -251,7 +279,7 @@ const seedIntegrations = async (tenantId: string): Promise<void> => {
         const cfg = node.config as Record<string, unknown>;
         const currentId = cfg["integrationId"];
         if (!currentId || currentId === "PLACEHOLDER") {
-          (node.config as Record<string, unknown>)["integrationId"] = integrationIds[svc];
+          cfg["integrationId"] = integrationIds[svc];
           patched = true;
         }
       }
