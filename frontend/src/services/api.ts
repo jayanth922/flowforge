@@ -2,6 +2,8 @@ import axios from "axios";
 import type {
   AuthResponse,
   CompileResponse,
+  ExecuteResponse,
+  ExecutionStatusResponse,
   Workflow,
   WorkflowDAG,
 } from "../types/api";
@@ -75,5 +77,26 @@ export const getWorkflowDag = async (
   const res = await api.get<{ success: true; data: WorkflowDAG }>(
     `/workflows/${workflowId}/dag`,
   );
+  return res.data.data;
+};
+
+export const executeWorkflow = async (
+  workflowId: string,
+  triggerPayload?: Record<string, unknown>,
+): Promise<ExecuteResponse> => {
+  const res = await api.post<{ success: true; data: ExecuteResponse }>(
+    `/workflows/${workflowId}/execute`,
+    { triggerPayload: triggerPayload ?? {} },
+  );
+  return res.data.data;
+};
+
+export const getExecutionStatus = async (
+  executionId: string,
+): Promise<ExecutionStatusResponse> => {
+  const res = await api.get<{
+    success: true;
+    data: ExecutionStatusResponse;
+  }>(`/executions/${executionId}/status`);
   return res.data.data;
 };

@@ -58,6 +58,37 @@ export interface CompileResponse {
   dag: WorkflowDAGResponse;
 }
 
+export type StepStatus =
+  | "pending"
+  | "running"
+  | "completed"
+  | "failed"
+  | "skipped";
+
+export interface ExecutionStep {
+  stepId: string;
+  stepLabel: string;
+  status: StepStatus;
+  startedAt: string;
+  completedAt: string | null;
+  output: Record<string, unknown>;
+  error: string | null;
+  retryCount: number;
+}
+
+export interface ExecutionStatusResponse {
+  executionId: string;
+  workflowId: string;
+  status: "pending" | "running" | "completed" | "failed" | "partial";
+  startedAt: string;
+  completedAt: string | null;
+  steps: ExecutionStep[];
+}
+
+export interface ExecuteResponse {
+  executionId: string;
+}
+
 export interface WorkflowDAG {
   _id: string;
   workflowId: string;

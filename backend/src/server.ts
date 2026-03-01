@@ -8,6 +8,10 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 import { authRouter } from "./routes/auth.js";
 import { workflowRouter } from "./routes/workflows.js";
+import {
+  workflowExecuteRouter,
+  executionRouter,
+} from "./routes/executions.js";
 
 const app = express();
 const PORT = process.env["PORT"] ?? 4000;
@@ -28,6 +32,8 @@ app.get("/api/v1/health", (_req, res) => {
 
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/workflows", workflowRouter);
+app.use("/api/v1/workflows", workflowExecuteRouter);
+app.use("/api/v1/executions", executionRouter);
 
 app.use(notFound);
 app.use(errorHandler);

@@ -59,6 +59,16 @@ export const listWorkflowsByTenant = async (
   return result.rows as Workflow[];
 };
 
+export const findExecutionById = async (
+  executionId: string,
+): Promise<WorkflowExecution | null> => {
+  const result = await query(
+    "SELECT * FROM workflow_executions WHERE id = $1",
+    [executionId],
+  );
+  return (result.rows[0] as WorkflowExecution | undefined) ?? null;
+};
+
 export const createExecution = async (
   workflowId: string,
   tenantId: string,

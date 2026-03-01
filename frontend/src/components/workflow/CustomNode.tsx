@@ -1,8 +1,8 @@
 import { Handle, Position, type Node, type NodeProps } from "@xyflow/react";
-import type { NodeType } from "../../types/api";
+import type { NodeType, StepStatus } from "../../types/api";
 
 type CustomNodeType = Node<
-  { label: string; nodeType: NodeType },
+  { label: string; nodeType: NodeType; stepStatus?: StepStatus },
   "custom"
 >;
 
@@ -42,13 +42,32 @@ const NODE_STYLES: Record<
   },
 };
 
+const STEP_OVERRIDES: Record<StepStatus, string> = {
+  pending: "opacity-60",
+  running: "animate-pulse ring-2 ring-blue-400",
+  completed: "!bg-green-800/70 !border-green-400",
+  failed: "!bg-red-800/70 !border-red-400",
+  skipped: "opacity-40 !border-dashed",
+};
+
+const STEP_PREFIX: Record<StepStatus, string> = {
+  pending: "",
+  running: "",
+  completed: "✓ ",
+  failed: "✗ ",
+  skipped: "",
+};
+
 const CustomNode = ({ data }: NodeProps<CustomNodeType>) => {
   const nodeType = data.nodeType;
   const style = NODE_STYLES[nodeType];
+  const stepStatus = data.stepStatus;
+  const override = stepStatus ? STEP_OVERRIDES[stepStatus] : "";
+  const prefix = stepStatus ? STEP_PREFIX[stepStatus] : "";
 
   return (
     <div
-      className={`rounded-lg border-2 ${style.border} ${style.bg} px-4 py-3 shadow-lg backdrop-blur-sm`}
+      className={`rounded-lg border-2 ${style.border} ${style.bg} px-4 py-3 shadow-lg backdrop-blur-sm ${override}`}
     >
       {nodeType !== "trigger" && (
         <Handle
@@ -64,7 +83,9 @@ const CustomNode = ({ data }: NodeProps<CustomNodeType>) => {
         >
           {style.icon} {nodeType}
         </span>
-        <span className="text-sm font-semibold text-white">{data.label}</span>
+        <span className="text-sm font-semibold text-white">
+          {prefix}{data.label}
+        </span>
       </div>
 
       <Handle

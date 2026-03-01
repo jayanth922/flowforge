@@ -6,22 +6,30 @@ import {
   type Node,
   type Edge,
 } from "@xyflow/react";
-import type { DAGNode, DAGEdge } from "../../types/api";
+import type { DAGNode, DAGEdge, StepStatus } from "../../types/api";
 import CustomNode from "./CustomNode";
 
 interface WorkflowCanvasProps {
   nodes: DAGNode[];
   edges: DAGEdge[];
+  stepStatuses?: Map<string, StepStatus>;
 }
 
 const nodeTypes = { custom: CustomNode } as const;
 
-const toFlowNodes = (dagNodes: DAGNode[]): Node[] =>
+const toFlowNodes = (
+  dagNodes: DAGNode[],
+  stepStatuses?: Map<string, StepStatus>,
+): Node[] =>
   dagNodes.map((n) => ({
     id: n.id,
     type: "custom" as const,
     position: n.position,
-    data: { label: n.label, nodeType: n.type },
+    data: {
+      label: n.label,
+      nodeType: n.type,
+      stepStatus: stepStatuses?.get(n.id),
+    },
   }));
 
 const toFlowEdges = (dagEdges: DAGEdge[]): Edge[] =>
@@ -35,7 +43,11 @@ const toFlowEdges = (dagEdges: DAGEdge[]): Edge[] =>
     labelStyle: { fill: "#9ca3af", fontSize: 12 },
   }));
 
-const WorkflowCanvas = ({ nodes, edges }: WorkflowCanvasProps) => {
+const WorkflowCanvas = ({
+  nodes,
+  edges,
+  stepStatuses,
+}: WorkflowCanvasProps) => {
   if (nodes.length === 0) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -48,7 +60,7 @@ const WorkflowCanvas = ({ nodes, edges }: WorkflowCanvasProps) => {
 
   return (
     <ReactFlow
-      nodes={toFlowNodes(nodes)}
+      nodes={toFlowNodes(nodes, stepStatuses)}
       edges={toFlowEdges(edges)}
       nodeTypes={nodeTypes}
       fitView
