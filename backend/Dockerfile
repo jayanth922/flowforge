@@ -9,6 +9,7 @@ COPY tsconfig.json ./
 COPY src ./src
 
 RUN npm run build
+RUN cp -r src/db/migrations dist/db/migrations
 
 FROM node:20-alpine
 
