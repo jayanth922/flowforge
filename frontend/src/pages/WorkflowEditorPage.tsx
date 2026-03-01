@@ -99,6 +99,25 @@ const WorkflowEditorPage = () => {
   }, [execError]);
 
   useEffect(() => {
+    if (!isNewMode) return;
+    const stored = localStorage.getItem("flowforge_template");
+    if (!stored) return;
+    localStorage.removeItem("flowforge_template");
+    try {
+      const template = JSON.parse(stored) as {
+        prompt: string;
+        nodes: DAGNode[];
+        edges: DAGEdge[];
+      };
+      setPrompt(template.prompt);
+      setNodes(template.nodes);
+      setEdges(template.edges);
+    } catch {
+      // ignore malformed template
+    }
+  }, [isNewMode]);
+
+  useEffect(() => {
     if (isNewMode) return;
 
     getWorkflowDag(id)

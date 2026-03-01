@@ -21,12 +21,20 @@ const NavHeader = () => {
           FlowForge
         </Link>
 
-        <Link
-          to="/dashboard"
-          className="text-sm text-gray-400 transition-colors hover:text-white"
-        >
-          Dashboard
-        </Link>
+        <div className="flex items-center gap-6">
+          <Link
+            to="/dashboard"
+            className="text-sm text-gray-400 transition-colors hover:text-white"
+          >
+            Dashboard
+          </Link>
+          <Link
+            to="/templates"
+            className="text-sm text-gray-400 transition-colors hover:text-white"
+          >
+            Templates
+          </Link>
+        </div>
 
         <div className="flex items-center gap-4">
           {user && (

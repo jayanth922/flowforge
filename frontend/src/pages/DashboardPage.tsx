@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { listWorkflows } from "../services/api";
+import { listWorkflows, getWorkflowStats, type WorkflowStats } from "../services/api";
 import NavHeader from "../components/NavHeader";
 import type { Workflow } from "../types/api";
 
@@ -29,18 +29,42 @@ const SkeletonCard = () => (
   </div>
 );
 
+const formatRelativeTime = (iso: string): string => {
+  const diff = Date.now() - new Date(iso).getTime();
+  const seconds = Math.floor(diff / 1000);
+  if (seconds < 60) return `${seconds}s ago`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+};
+
+const STATUS_ICON: Record<string, string> = {
+  completed: "\u2705",
+  failed: "\u274C",
+  running: "\u{1F504}",
+  pending: "\u23F3",
+  partial: "\u26A0\uFE0F",
+};
+
 const DashboardPage = () => {
   const [workflows, setWorkflows] = useState<Workflow[]>([]);
+  const [stats, setStats] = useState<Record<string, WorkflowStats>>({});
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    document.title = "FlowForge — Dashboard";
+    document.title = "FlowForge \u2014 Dashboard";
   }, []);
 
   useEffect(() => {
-    listWorkflows()
-      .then(setWorkflows)
+    Promise.all([listWorkflows(), getWorkflowStats()])
+      .then(([wf, st]) => {
+        setWorkflows(wf);
+        setStats(st);
+      })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
@@ -99,6 +123,18 @@ const DashboardPage = () => {
                     {w.description}
                   </p>
                 )}
+                {(() => {
+                  const s = stats[w.id];
+                  if (!s) return <p className="mt-1 text-xs text-gray-600">No executions yet</p>;
+                  return (
+                    <p className="mt-1 text-xs text-gray-500">
+                      Last run: {s.lastRunAt ? formatRelativeTime(s.lastRunAt) : "—"} {STATUS_ICON[s.lastStatus ?? ""] ?? ""} {s.lastStatus}
+                      <span className="ml-2 text-gray-600">
+                        &middot; {s.totalExecutions} execution{s.totalExecutions !== 1 ? "s" : ""}
+                      </span>
+                    </p>
+                  );
+                })()}
                 <p className="mt-auto text-xs text-gray-600">
                   {formatDate(w.created_at)}
                 </p>

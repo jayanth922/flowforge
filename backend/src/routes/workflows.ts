@@ -9,6 +9,7 @@ import {
   enableWebhook,
   disableWebhook,
 } from "../models/workflowPg.model.js";
+import { query as pgQuery } from "../db/postgres.js";
 import { WorkflowDAGModel } from "../models/workflow.model.js";
 import {
   registerWorkflowSchedule,
@@ -41,6 +42,48 @@ workflowRouter.get("/validate-cron", (req, res) => {
 
   const result = validateCronExpression(parsed.data.expr);
   res.status(200).json({ success: true, data: result });
+});
+
+workflowRouter.get("/stats", async (req, res, next) => {
+  try {
+    const { tenantId } = req.user!;
+
+    const result = await pgQuery(
+      `SELECT
+         e.workflow_id,
+         COUNT(*)::int AS total_executions,
+         MAX(e.started_at) AS last_run_at,
+         (SELECT e2.status FROM workflow_executions e2
+          WHERE e2.workflow_id = e.workflow_id
+          ORDER BY e2.started_at DESC LIMIT 1) AS last_status
+       FROM workflow_executions e
+       WHERE e.tenant_id = $1
+       GROUP BY e.workflow_id`,
+      [tenantId],
+    );
+
+    const stats: Record<
+      string,
+      { totalExecutions: number; lastRunAt: string | null; lastStatus: string | null }
+    > = {};
+
+    for (const row of result.rows as {
+      workflow_id: string;
+      total_executions: number;
+      last_run_at: string | null;
+      last_status: string | null;
+    }[]) {
+      stats[row.workflow_id] = {
+        totalExecutions: row.total_executions,
+        lastRunAt: row.last_run_at,
+        lastStatus: row.last_status,
+      };
+    }
+
+    res.status(200).json({ success: true, data: stats });
+  } catch (err) {
+    next(err);
+  }
 });
 
 workflowRouter.post("/compile", async (req, res, next) => {

@@ -26,67 +26,59 @@ interface SeedWorkflowDef {
 
 const WORKFLOWS: SeedWorkflowDef[] = [
   {
-    name: "Payment Retry Flow",
+    name: "Payment Alert Pipeline",
     description:
-      "Retries failed payments, notifies the account owner, and flags for review",
+      "Checks payment amount, alerts Slack, creates GitHub issue for fraud review, and emails the customer",
     prompt:
-      "When a payment fails, retry 3 times at 1-hour intervals, then notify the account owner via email and flag the transaction for review",
+      "When a payment fails, check if amount > $500, alert Slack, create GitHub issue for fraud review, then email the customer",
     nodes: [
       { id: "node_1", type: "trigger", label: "Payment Failed", config: { triggerType: "webhook" }, position: { x: 0, y: 0 } },
-      { id: "node_2", type: "http_request", label: "Retry Payment", config: { method: "POST", url: "https://api.example.com/payments/retry", body: "{\"paymentId\": \"{{payload.payment_id}}\"}" }, position: { x: 250, y: 0 } },
-      { id: "node_3", type: "delay", label: "Wait 1 Hour", config: { duration: 1, unit: "hours" }, position: { x: 500, y: 0 } },
-      { id: "node_4", type: "send_email", label: "Notify Owner", config: { to: "{{payload.owner_email}}", subject: "Payment Failed", body: "Your payment of ${{payload.amount}} has failed." }, position: { x: 750, y: 0 } },
-      { id: "node_5", type: "http_request", label: "Flag for Review", config: { method: "PATCH", url: "https://api.example.com/transactions/{{payload.transaction_id}}", body: "{\"status\": \"flagged\"}" }, position: { x: 1000, y: 0 } },
+      { id: "node_2", type: "condition", label: "High Value?", config: { expression: "{{payload.amount}} > 500" }, position: { x: 250, y: 0 } },
+      { id: "node_3", type: "post_slack", label: "Alert Slack", config: { webhookUrl: "{{env.DEMO_SLACK_WEBHOOK}}", message: "\u{1F6A8} High-value payment failed!\nAmount: ${{payload.amount}}\nCustomer: {{payload.customer_name}}\nTransaction: {{payload.transaction_id}}" }, position: { x: 500, y: 0 } },
+      { id: "node_4", type: "create_github_issue", label: "Create Review Issue", config: { owner: "{{env.GITHUB_OWNER}}", repo: "{{env.GITHUB_DEMO_REPO}}", title: "Fraud Review: TXN-{{payload.transaction_id}}", body: "Amount: ${{payload.amount}}\nCustomer: {{payload.customer_email}}\nRequires manual review.", labels: ["fraud-review", "high-priority"] }, position: { x: 750, y: 0 } },
+      { id: "node_5", type: "send_email", label: "Notify Customer", config: { to: "{{payload.customer_email}}", subject: "Action Required: Payment of ${{payload.amount}} failed", body: "Dear {{payload.customer_name}},\n\nYour payment of ${{payload.amount}} on {{payload.date}} could not be processed.\n\nPlease update your payment method.\n\nFlowForge Payments Team" }, position: { x: 1000, y: 0 } },
     ],
     edges: [
-      { id: "edge_1", source: "node_1", target: "node_2", label: "on failure" },
-      { id: "edge_2", source: "node_2", target: "node_3", label: "still failing" },
-      { id: "edge_3", source: "node_3", target: "node_4", label: "after delay" },
+      { id: "edge_1", source: "node_1", target: "node_2", label: "then" },
+      { id: "edge_2", source: "node_2", target: "node_3", label: "if true" },
+      { id: "edge_3", source: "node_3", target: "node_4", label: "then" },
       { id: "edge_4", source: "node_4", target: "node_5", label: "then" },
+    ],
+  },
+  {
+    name: "Daily Tech Digest",
+    description:
+      "Fetches posts from an API on a daily schedule, formats a digest, and posts it to Discord",
+    prompt:
+      "Every day at 9am, fetch latest posts from an API, format them into a digest, and post to Discord",
+    nodes: [
+      { id: "node_1", type: "trigger", label: "Daily 9am", config: { triggerType: "schedule", cronExpression: "0 9 * * *" }, position: { x: 0, y: 0 } },
+      { id: "node_2", type: "http_request", label: "Fetch Posts", config: { method: "GET", url: "https://jsonplaceholder.typicode.com/posts?_limit=3", extractPath: "data" }, position: { x: 250, y: 0 } },
+      { id: "node_3", type: "data_transform", label: "Format Digest", config: { extractPath: "steps.node_2.output", outputKey: "digest" }, position: { x: 500, y: 0 } },
+      { id: "node_4", type: "post_discord", label: "Post to Discord", config: { webhookUrl: "{{env.DEMO_DISCORD_WEBHOOK}}", message: "\u{1F4F0} Daily Tech Digest\n\nFetched {{steps.node_3.output.digest}} items from API" }, position: { x: 750, y: 0 } },
+    ],
+    edges: [
+      { id: "edge_1", source: "node_1", target: "node_2", label: "at 9am daily" },
+      { id: "edge_2", source: "node_2", target: "node_3", label: "fetched" },
+      { id: "edge_3", source: "node_3", target: "node_4", label: "formatted" },
     ],
   },
   {
     name: "User Onboarding Flow",
     description:
-      "Sends welcome email, waits, sends checklist, escalates if incomplete",
+      "Sends a welcome email to new users, waits briefly, then creates a GitHub issue to track the signup",
     prompt:
-      "When a new user registers, send a welcome email, wait 24 hours, then send an onboarding checklist, if not completed in 3 days escalate to support team",
+      "When a new user signs up, send a welcome email, wait briefly, then create a GitHub issue to track the new user",
     nodes: [
-      { id: "node_1", type: "trigger", label: "User Registered", config: { triggerType: "webhook" }, position: { x: 0, y: 0 } },
-      { id: "node_2", type: "send_email", label: "Send Welcome Email", config: { to: "{{payload.email}}", subject: "Welcome to FlowForge!", body: "Hello {{payload.name}}, welcome aboard!" }, position: { x: 250, y: 0 } },
-      { id: "node_3", type: "delay", label: "Wait 24 Hours", config: { duration: 24, unit: "hours" }, position: { x: 500, y: 0 } },
-      { id: "node_4", type: "send_email", label: "Send Checklist", config: { to: "{{payload.email}}", subject: "Your Onboarding Checklist", body: "Complete your onboarding steps." }, position: { x: 750, y: 0 } },
-      { id: "node_5", type: "condition", label: "Completed?", config: { expression: "{{steps.node_4.output.success}} == true" }, position: { x: 1000, y: 0 } },
-      { id: "node_6", type: "post_slack", label: "Escalate to Support", config: { webhookUrl: "{{env.SLACK_WEBHOOK_URL}}", message: "User {{payload.email}} has not completed onboarding." }, position: { x: 1250, y: 0 } },
+      { id: "node_1", type: "trigger", label: "User Signed Up", config: { triggerType: "webhook" }, position: { x: 0, y: 0 } },
+      { id: "node_2", type: "send_email", label: "Welcome Email", config: { to: "{{payload.user_email}}", subject: "Welcome to FlowForge, {{payload.user_name}}!", body: "Hi {{payload.user_name}},\n\nWelcome! Your {{payload.plan}} plan is now active.\n\nGet started at https://flowforge-tau.vercel.app\n\nThe FlowForge Team" }, position: { x: 250, y: 0 } },
+      { id: "node_3", type: "delay", label: "Wait 2 Seconds", config: { duration: 2, unit: "seconds" }, position: { x: 500, y: 0 } },
+      { id: "node_4", type: "create_github_issue", label: "Log New User", config: { owner: "{{env.GITHUB_OWNER}}", repo: "{{env.GITHUB_DEMO_REPO}}", title: "New {{payload.plan}} user: {{payload.user_name}}", body: "Email: {{payload.user_email}}\nPlan: {{payload.plan}}\nSigned up: {{payload.signup_date}}", labels: ["new-user", "{{payload.plan}}"] }, position: { x: 750, y: 0 } },
     ],
     edges: [
       { id: "edge_1", source: "node_1", target: "node_2", label: "then" },
       { id: "edge_2", source: "node_2", target: "node_3", label: "sent" },
       { id: "edge_3", source: "node_3", target: "node_4", label: "after delay" },
-      { id: "edge_4", source: "node_4", target: "node_5", label: "then" },
-      { id: "edge_5", source: "node_5", target: "node_6", label: "not completed" },
-    ],
-  },
-  {
-    name: "Invoice Processing Flow",
-    description:
-      "Extracts line items, matches purchase orders, flags discrepancies, notifies approver",
-    prompt:
-      "When an invoice is uploaded, extract line items, match against open purchase orders, flag discrepancies over 5%, and notify the assigned approver",
-    nodes: [
-      { id: "node_1", type: "trigger", label: "Invoice Uploaded", config: { triggerType: "webhook" }, position: { x: 0, y: 0 } },
-      { id: "node_2", type: "http_request", label: "Extract Line Items", config: { method: "POST", url: "https://api.example.com/invoices/extract", body: "{\"invoiceId\": \"{{payload.invoice_id}}\"}", extractPath: "data.lineItems" }, position: { x: 250, y: 0 } },
-      { id: "node_3", type: "http_request", label: "Match Purchase Orders", config: { method: "POST", url: "https://api.example.com/po/match", body: "{\"lineItems\": {{steps.node_2.output.extracted}}}" }, position: { x: 500, y: 0 } },
-      { id: "node_4", type: "condition", label: "Discrepancy > 5%?", config: { expression: "{{steps.node_3.output.extracted}} > 5" }, position: { x: 750, y: 0 } },
-      { id: "node_5", type: "create_github_issue", label: "Flag Discrepancy", config: { owner: "your-org", repo: "invoices", title: "Discrepancy on invoice {{payload.invoice_id}}", body: "Discrepancy exceeds 5% threshold.", labels: ["billing"] }, position: { x: 1000, y: 0 } },
-      { id: "node_6", type: "send_email", label: "Notify Approver", config: { to: "{{payload.approver_email}}", subject: "Invoice Review Required", body: "Invoice {{payload.invoice_id}} needs your attention." }, position: { x: 1250, y: 0 } },
-    ],
-    edges: [
-      { id: "edge_1", source: "node_1", target: "node_2", label: "then" },
-      { id: "edge_2", source: "node_2", target: "node_3", label: "extracted" },
-      { id: "edge_3", source: "node_3", target: "node_4", label: "matched" },
-      { id: "edge_4", source: "node_4", target: "node_5", label: "if true" },
-      { id: "edge_5", source: "node_5", target: "node_6", label: "then" },
     ],
   },
 ];
@@ -109,26 +101,26 @@ const mockOutput = (node: IDAGNode): Record<string, unknown> => {
     case "trigger":
       return { event: "trigger_fired", payload: {} };
     case "condition":
-      return { result: true, evaluated: node.label };
+      return { result: true, expression: "750 > 500", evaluated: true };
     case "delay":
-      return { waited: true, duration: "2s (capped for demo)" };
+      return { waited: true, duration: "2000ms (capped for demo)" };
     case "notification": {
       const recipient =
         typeof node.config["to"] === "string" ? node.config["to"] : "admin";
       return { notified: true, recipient };
     }
     case "send_email":
-      return { success: true, messageId: "seed_msg_001", to: node.config["to"], subject: node.config["subject"] };
+      return { success: true, messageId: "seed_msg_" + node.id, to: String(node.config["to"] ?? ""), subject: String(node.config["subject"] ?? "") };
     case "post_slack":
-      return { success: true, message: node.config["message"] };
+      return { success: true, message: String(node.config["message"] ?? "") };
     case "post_discord":
-      return { success: true, message: node.config["message"] };
+      return { success: true, message: String(node.config["message"] ?? "") };
     case "create_github_issue":
       return { success: true, issueNumber: 42, issueUrl: "https://github.com/example/issues/42" };
     case "http_request":
-      return { success: true, status: 200, response: {} };
+      return { success: true, status: 200, response: { data: [{ id: 1, title: "Sample Post" }] }, extracted: [{ id: 1, title: "Sample Post" }] };
     case "data_transform":
-      return { extracted: "sample_value" };
+      return { digest: 3 };
   }
 };
 

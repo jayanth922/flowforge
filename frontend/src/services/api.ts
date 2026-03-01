@@ -133,6 +133,19 @@ export const validateCron = async (
   return res.data.data;
 };
 
+export interface WorkflowStats {
+  totalExecutions: number;
+  lastRunAt: string | null;
+  lastStatus: string | null;
+}
+
+export const getWorkflowStats = async (): Promise<Record<string, WorkflowStats>> => {
+  const res = await api.get<{ success: true; data: Record<string, WorkflowStats> }>(
+    "/workflows/stats",
+  );
+  return res.data.data;
+};
+
 export const getExecutionStatus = async (
   executionId: string,
 ): Promise<ExecutionStatusResponse> => {
