@@ -12,6 +12,7 @@ import {
   workflowExecuteRouter,
   executionRouter,
 } from "./routes/executions.js";
+import { demoRouter } from "./routes/demo.js";
 
 const app = express();
 const PORT = process.env["PORT"] ?? 4000;
@@ -34,6 +35,7 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/workflows", workflowRouter);
 app.use("/api/v1/workflows", workflowExecuteRouter);
 app.use("/api/v1/executions", executionRouter);
+app.use("/api/v1/demo", demoRouter);
 
 app.use(notFound);
 app.use(errorHandler);
