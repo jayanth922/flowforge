@@ -1,4 +1,6 @@
 import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import bcrypt from "bcryptjs";
 import mongoose from "mongoose";
 import { pool, query } from "./postgres.js";
@@ -172,11 +174,7 @@ const seedWorkflow = async (
   console.log(`[seed]   workflow: ${def.name} (${def.nodes.length} nodes, 1 execution)`);
 };
 
-const run = async (): Promise<void> => {
-  const mongoUri = process.env["MONGODB_URI"];
-  if (!mongoUri) throw new Error("MONGODB_URI is not set");
-  await mongoose.connect(mongoUri);
-
+export const seedIfEmpty = async (): Promise<void> => {
   const existing = await query(
     "SELECT id FROM users WHERE email = $1",
     [DEMO_EMAIL],
@@ -184,8 +182,6 @@ const run = async (): Promise<void> => {
 
   if (existing.rows.length > 0) {
     console.log("[seed] demo data already exists — skipping");
-    await mongoose.disconnect();
-    await pool.end();
     return;
   }
 
@@ -213,12 +209,23 @@ const run = async (): Promise<void> => {
   }
 
   console.log("[seed] done — 1 tenant, 1 user, 3 workflows with executions");
-
-  await mongoose.disconnect();
-  await pool.end();
 };
 
-run().catch((err) => {
-  console.error("[seed] failed:", err);
-  process.exit(1);
-});
+const isDirectRun =
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+
+if (isDirectRun) {
+  const mongoUri = process.env["MONGODB_URI"];
+  if (!mongoUri) throw new Error("MONGODB_URI is not set");
+
+  mongoose
+    .connect(mongoUri)
+    .then(() => seedIfEmpty())
+    .then(() => mongoose.disconnect())
+    .then(() => pool.end())
+    .catch((err) => {
+      console.error("[seed] failed:", err);
+      process.exit(1);
+    });
+}

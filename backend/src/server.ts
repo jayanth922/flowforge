@@ -4,6 +4,8 @@ import cors from "cors";
 import helmet from "helmet";
 import { connectPostgres } from "./db/postgres.js";
 import { connectMongo } from "./db/mongo.js";
+import { runMigrations } from "./db/migrate.js";
+import { seedIfEmpty } from "./db/seed.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
 import { authRouter } from "./routes/auth.js";
@@ -46,6 +48,7 @@ app.use(errorHandler);
 
 const start = async () => {
   try {
+    await runMigrations();
     await connectPostgres();
   } catch (err) {
     console.error("[server] failed to start:", err);
@@ -60,6 +63,13 @@ const start = async () => {
       "[mongo] connection failed, continuing without MongoDB:",
       message,
     );
+  }
+
+  try {
+    await seedIfEmpty();
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn("[seed] failed, continuing without seed data:", message);
   }
 
   app.listen(PORT, () => {

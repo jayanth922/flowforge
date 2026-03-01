@@ -45,7 +45,7 @@ const applyMigration = async (
   }
 };
 
-const run = async (): Promise<void> => {
+export const runMigrations = async (): Promise<void> => {
   const client = await pool.connect();
 
   try {
@@ -78,11 +78,18 @@ const run = async (): Promise<void> => {
     );
   } finally {
     client.release();
-    await pool.end();
   }
 };
 
-run().catch((err) => {
-  console.error("[migrate] failed:", err);
-  process.exit(1);
-});
+const isDirectRun =
+  process.argv[1] &&
+  fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+
+if (isDirectRun) {
+  runMigrations()
+    .then(() => pool.end())
+    .catch((err) => {
+      console.error("[migrate] failed:", err);
+      process.exit(1);
+    });
+}
