@@ -8,6 +8,11 @@ import { runMigrations } from "./db/migrate.js";
 import { seedIfEmpty } from "./db/seed.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
+import {
+  globalLimiter,
+  authLimiter,
+  compileLimiter,
+} from "./middleware/rateLimiter.js";
 import { authRouter } from "./routes/auth.js";
 import { workflowRouter } from "./routes/workflows.js";
 import {
@@ -26,6 +31,7 @@ app.use(
 );
 app.use(helmet());
 app.use(express.json());
+app.use(globalLimiter);
 
 app.get("/api/v1/health", (_req, res) => {
   res.json({
@@ -37,7 +43,8 @@ app.get("/api/v1/health", (_req, res) => {
   });
 });
 
-app.use("/api/v1/auth", authRouter);
+app.use("/api/v1/auth", authLimiter, authRouter);
+app.use("/api/v1/workflows/compile", compileLimiter);
 app.use("/api/v1/workflows", workflowRouter);
 app.use("/api/v1/workflows", workflowExecuteRouter);
 app.use("/api/v1/executions", executionRouter);
