@@ -14,6 +14,7 @@ import {
   globalLimiter,
   authLimiter,
   compileLimiter,
+  webhookLimiter,
 } from "./middleware/rateLimiter.js";
 import { authRouter } from "./routes/auth.js";
 import { workflowRouter } from "./routes/workflows.js";
@@ -22,6 +23,7 @@ import {
   executionRouter,
 } from "./routes/executions.js";
 import { demoRouter } from "./routes/demo.js";
+import { webhookRouter } from "./routes/webhooks.js";
 
 const app = express();
 const PORT = process.env["PORT"] ?? 4000;
@@ -52,6 +54,7 @@ app.use("/api/v1/workflows", workflowRouter);
 app.use("/api/v1/workflows", workflowExecuteRouter);
 app.use("/api/v1/executions", executionRouter);
 app.use("/api/v1/demo", demoRouter);
+app.use("/api/v1/webhooks", webhookLimiter, webhookRouter);
 
 app.use(notFound);
 app.use(errorHandler);

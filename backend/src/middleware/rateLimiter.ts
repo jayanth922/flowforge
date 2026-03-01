@@ -35,3 +35,15 @@ export const compileLimiter = rateLimit({
     code: "RATE_LIMITED",
   },
 });
+
+export const webhookLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: {
+    success: false,
+    error: "Webhook rate limit exceeded",
+    code: "RATE_LIMITED",
+  },
+});

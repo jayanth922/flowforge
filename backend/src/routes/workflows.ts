@@ -6,6 +6,8 @@ import {
   createWorkflow,
   findWorkflowById,
   listWorkflowsByTenant,
+  enableWebhook,
+  disableWebhook,
 } from "../models/workflowPg.model.js";
 import { WorkflowDAGModel } from "../models/workflow.model.js";
 
@@ -124,6 +126,95 @@ workflowRouter.get("/:id/dag", async (req, res, next) => {
     res.status(200).json({
       success: true,
       data: dag,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+workflowRouter.get("/:id/webhook", async (req, res, next) => {
+  try {
+    const { tenantId } = req.user!;
+    const { id } = req.params;
+
+    const workflow = await findWorkflowById(id, tenantId);
+    if (!workflow) {
+      res.status(404).json({
+        success: false,
+        error: "Workflow not found",
+        code: "WORKFLOW_NOT_FOUND",
+      });
+      return;
+    }
+
+    const baseUrl = process.env["BASE_URL"] ?? "http://localhost:3001";
+    const webhookUrl = workflow.webhook_secret
+      ? `${baseUrl}/api/v1/webhooks/trigger/${workflow.webhook_secret}`
+      : null;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        webhookEnabled: workflow.webhook_enabled,
+        webhookUrl,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+workflowRouter.post("/:id/webhook/enable", async (req, res, next) => {
+  try {
+    const { tenantId } = req.user!;
+    const { id } = req.params;
+
+    const workflow = await findWorkflowById(id, tenantId);
+    if (!workflow) {
+      res.status(404).json({
+        success: false,
+        error: "Workflow not found",
+        code: "WORKFLOW_NOT_FOUND",
+      });
+      return;
+    }
+
+    const updated = await enableWebhook(id, tenantId);
+    const baseUrl = process.env["BASE_URL"] ?? "http://localhost:3001";
+    const webhookUrl = `${baseUrl}/api/v1/webhooks/trigger/${updated.webhook_secret}`;
+
+    res.status(200).json({
+      success: true,
+      data: {
+        webhookSecret: updated.webhook_secret,
+        webhookUrl,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+workflowRouter.post("/:id/webhook/disable", async (req, res, next) => {
+  try {
+    const { tenantId } = req.user!;
+    const { id } = req.params;
+
+    const workflow = await findWorkflowById(id, tenantId);
+    if (!workflow) {
+      res.status(404).json({
+        success: false,
+        error: "Workflow not found",
+        code: "WORKFLOW_NOT_FOUND",
+      });
+      return;
+    }
+
+    await disableWebhook(id, tenantId);
+
+    res.status(200).json({
+      success: true,
+      data: { disabled: true },
     });
   } catch (err) {
     next(err);

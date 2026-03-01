@@ -4,6 +4,9 @@ import {
   compileWorkflow,
   getWorkflowDag,
   executeWorkflow,
+  getWebhookStatus,
+  enableWebhook,
+  disableWebhook,
 } from "../services/api";
 import { useExecutionStatus } from "../hooks/useExecutionStatus";
 import NavHeader from "../components/NavHeader";
@@ -53,6 +56,11 @@ const WorkflowEditorPage = () => {
     isNewMode ? null : id,
   );
 
+  const [webhookEnabled, setWebhookEnabled] = useState(false);
+  const [webhookUrl, setWebhookUrl] = useState<string | null>(null);
+  const [webhookLoading, setWebhookLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
+
   const [executionId, setExecutionId] = useState<string | null>(null);
   const { executionStatus, steps, isRunning } =
     useExecutionStatus(executionId);
@@ -97,6 +105,13 @@ const WorkflowEditorPage = () => {
         setError("Failed to load workflow");
       })
       .finally(() => setPageLoading(false));
+
+    getWebhookStatus(id)
+      .then((status) => {
+        setWebhookEnabled(status.webhookEnabled);
+        setWebhookUrl(status.webhookUrl);
+      })
+      .catch(() => {});
   }, [id, isNewMode]);
 
   const handleCompile = async () => {
@@ -139,6 +154,32 @@ const WorkflowEditorPage = () => {
         setExecError("Execution failed to start.");
       }
     }
+  };
+
+  const handleWebhookToggle = async () => {
+    if (!workflowId) return;
+    setWebhookLoading(true);
+    try {
+      if (webhookEnabled) {
+        await disableWebhook(workflowId);
+        setWebhookEnabled(false);
+      } else {
+        const result = await enableWebhook(workflowId);
+        setWebhookEnabled(true);
+        setWebhookUrl(result.webhookUrl);
+      }
+    } catch {
+      setExecError("Failed to update webhook");
+    } finally {
+      setWebhookLoading(false);
+    }
+  };
+
+  const handleCopyUrl = async () => {
+    if (!webhookUrl) return;
+    await navigator.clipboard.writeText(webhookUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (pageLoading) {
@@ -187,6 +228,52 @@ const WorkflowEditorPage = () => {
             loading={loading}
             error={error}
           />
+
+          {workflowId && (
+            <div className="border-t border-gray-800 px-4 py-4">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-gray-300">
+                  Webhook
+                </span>
+                <button
+                  onClick={handleWebhookToggle}
+                  disabled={webhookLoading}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
+                    webhookEnabled ? "bg-indigo-600" : "bg-gray-700"
+                  }`}
+                >
+                  <span
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
+                      webhookEnabled ? "translate-x-5" : "translate-x-0"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {webhookEnabled && webhookUrl && (
+                <div className="mt-3">
+                  <label className="mb-1 block text-xs text-gray-500">
+                    POST to this URL to trigger this workflow from any external
+                    system
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={webhookUrl}
+                      className="flex-1 rounded-md border border-gray-700 bg-gray-900 px-3 py-1.5 text-xs text-gray-300 focus:outline-none"
+                    />
+                    <button
+                      onClick={handleCopyUrl}
+                      className="shrink-0 rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-gray-700"
+                    >
+                      {copied ? "Copied!" : "Copy"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="flex w-[70%] flex-col">

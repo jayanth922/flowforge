@@ -173,7 +173,7 @@ const runExecution = async (
 export const executeWorkflow = async (
   workflowId: string,
   tenantId: string,
-  userId: string,
+  userId: string | null,
   triggerPayload: Record<string, unknown>,
 ): Promise<string> => {
   const dagDoc = await WorkflowDAGModel.findOne({

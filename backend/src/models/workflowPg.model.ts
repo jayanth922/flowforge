@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import { query } from "../db/postgres.js";
 
 export interface Workflow {
@@ -7,6 +8,8 @@ export interface Workflow {
   description: string | null;
   created_by: string | null;
   status: "draft" | "active" | "archived";
+  webhook_secret: string | null;
+  webhook_enabled: boolean;
   created_at: Date;
   updated_at: Date;
 }
@@ -82,6 +85,46 @@ export const createExecution = async (
     [workflowId, tenantId, triggeredBy, JSON.stringify(triggerPayload)],
   );
   return result.rows[0] as WorkflowExecution;
+};
+
+export const enableWebhook = async (
+  workflowId: string,
+  tenantId: string,
+): Promise<Workflow> => {
+  const secret = crypto.randomBytes(32).toString("hex");
+  const result = await query(
+    `UPDATE workflows
+     SET webhook_enabled = true,
+         webhook_secret = COALESCE(webhook_secret, $1)
+     WHERE id = $2 AND tenant_id = $3
+     RETURNING *`,
+    [secret, workflowId, tenantId],
+  );
+  return result.rows[0] as Workflow;
+};
+
+export const disableWebhook = async (
+  workflowId: string,
+  tenantId: string,
+): Promise<Workflow> => {
+  const result = await query(
+    `UPDATE workflows
+     SET webhook_enabled = false
+     WHERE id = $1 AND tenant_id = $2
+     RETURNING *`,
+    [workflowId, tenantId],
+  );
+  return result.rows[0] as Workflow;
+};
+
+export const findWorkflowByWebhookSecret = async (
+  secret: string,
+): Promise<Workflow | null> => {
+  const result = await query(
+    "SELECT * FROM workflows WHERE webhook_secret = $1",
+    [secret],
+  );
+  return (result.rows[0] as Workflow | undefined) ?? null;
 };
 
 export const updateExecutionStatus = async (

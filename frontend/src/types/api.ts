@@ -89,6 +89,16 @@ export interface ExecuteResponse {
   executionId: string;
 }
 
+export interface WebhookStatusResponse {
+  webhookEnabled: boolean;
+  webhookUrl: string | null;
+}
+
+export interface WebhookEnableResponse {
+  webhookSecret: string;
+  webhookUrl: string;
+}
+
 export interface WorkflowDAG {
   _id: string;
   workflowId: string;

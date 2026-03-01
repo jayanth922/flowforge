@@ -4,6 +4,8 @@ import type {
   CompileResponse,
   ExecuteResponse,
   ExecutionStatusResponse,
+  WebhookEnableResponse,
+  WebhookStatusResponse,
   Workflow,
   WorkflowDAG,
 } from "../types/api";
@@ -89,6 +91,30 @@ export const executeWorkflow = async (
     { triggerPayload: triggerPayload ?? {} },
   );
   return res.data.data;
+};
+
+export const getWebhookStatus = async (
+  workflowId: string,
+): Promise<WebhookStatusResponse> => {
+  const res = await api.get<{ success: true; data: WebhookStatusResponse }>(
+    `/workflows/${workflowId}/webhook`,
+  );
+  return res.data.data;
+};
+
+export const enableWebhook = async (
+  workflowId: string,
+): Promise<WebhookEnableResponse> => {
+  const res = await api.post<{ success: true; data: WebhookEnableResponse }>(
+    `/workflows/${workflowId}/webhook/enable`,
+  );
+  return res.data.data;
+};
+
+export const disableWebhook = async (
+  workflowId: string,
+): Promise<void> => {
+  await api.post(`/workflows/${workflowId}/webhook/disable`);
 };
 
 export const getExecutionStatus = async (
