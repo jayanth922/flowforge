@@ -3,7 +3,6 @@ import {
   Controls,
   Background,
   BackgroundVariant,
-  MiniMap,
   type Node,
   type Edge,
 } from "@xyflow/react";
@@ -70,12 +69,6 @@ const WorkflowCanvas = ({
     >
       <Controls className="!bg-gray-800 !border-gray-700 !shadow-lg [&>button]:!bg-gray-800 [&>button]:!border-gray-700 [&>button]:!text-gray-300 [&>button:hover]:!bg-gray-700" />
       <Background variant={BackgroundVariant.Dots} color="#374151" gap={20} />
-      <MiniMap
-        nodeColor="#374151"
-        nodeBorderRadius={4}
-        maskColor="rgba(0,0,0,0.5)"
-        className="!bg-gray-900 !border-gray-700"
-      />
     </ReactFlow>
   );
 };
