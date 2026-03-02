@@ -4,62 +4,21 @@ import {
   listIntegrations,
   createIntegration,
   deleteIntegration,
-  testIntegration,
   type IntegrationSummary,
 } from "../services/api";
 
-type ServiceType = "slack" | "discord" | "github" | "http";
+type ConnectServiceType = "slack" | "discord" | "github";
 
-interface ServiceConfig {
-  label: string;
-  icon: string;
-  description: string;
-  fields: { key: string; label: string; type: "text" | "url" | "password" | "textarea" }[];
-}
-
-const SERVICES: Record<ServiceType, ServiceConfig> = {
-  slack: {
-    label: "Slack",
-    icon: "#",
-    description: "Send messages to Slack channels via webhooks",
-    fields: [
-      { key: "webhookUrl", label: "Webhook URL", type: "url" },
-    ],
-  },
-  discord: {
-    label: "Discord",
-    icon: "D",
-    description: "Send messages to Discord channels via webhooks",
-    fields: [
-      { key: "webhookUrl", label: "Webhook URL", type: "url" },
-    ],
-  },
-  github: {
-    label: "GitHub",
-    icon: "G",
-    description: "Create issues and interact with GitHub repositories",
-    fields: [
-      { key: "token", label: "Personal Access Token", type: "password" },
-      { key: "owner", label: "Owner / Org", type: "text" },
-      { key: "repo", label: "Repository", type: "text" },
-    ],
-  },
-  http: {
-    label: "HTTP",
-    icon: "H",
-    description: "Custom HTTP requests with pre-configured headers",
-    fields: [
-      { key: "headers", label: "Headers (JSON)", type: "textarea" },
-    ],
-  },
-};
-
-const SERVICE_ORDER: ServiceType[] = ["slack", "discord", "github", "http"];
+const CONNECT_SERVICES: { service: ConnectServiceType; label: string }[] = [
+  { service: "slack", label: "Slack" },
+  { service: "discord", label: "Discord" },
+  { service: "github", label: "GitHub" },
+];
 
 const IntegrationsPage = () => {
   const [integrations, setIntegrations] = useState<IntegrationSummary[]>([]);
   const [loading, setLoading] = useState(true);
-  const [expandedService, setExpandedService] = useState<ServiceType | null>(null);
+  const [connectModal, setConnectModal] = useState<ConnectServiceType | null>(null);
 
   useEffect(() => {
     document.title = "FlowForge — Integrations";
@@ -68,7 +27,6 @@ const IntegrationsPage = () => {
   const load = useCallback(async () => {
     try {
       const data = await listIntegrations();
-      console.log('integrations response:', data);
       setIntegrations(data);
     } catch {
       /* swallow */
@@ -81,10 +39,10 @@ const IntegrationsPage = () => {
     void load();
   }, [load]);
 
-  const byService = (service: ServiceType) =>
+  const byService = (service: string) =>
     integrations.filter((i) => i.service === service);
 
-  const handleDelete = async (id: string) => {
+  const handleDisconnect = async (id: string) => {
     try {
       await deleteIntegration(id);
       setIntegrations((prev) => prev.filter((i) => i.id !== id));
@@ -93,13 +51,11 @@ const IntegrationsPage = () => {
     }
   };
 
-  console.log('rendering integrations:', integrations);
-
   return (
     <div className="min-h-screen bg-gray-950 text-white">
       <NavHeader />
       <main className="mx-auto max-w-4xl px-6 py-10">
-        <h1 className="mb-2 text-2xl font-bold">Connected Integrations</h1>
+        <h1 className="mb-2 text-2xl font-bold">Integrations</h1>
         <p className="mb-8 text-sm text-gray-400">
           Connect your third-party services to use them in workflow nodes.
         </p>
@@ -110,253 +66,205 @@ const IntegrationsPage = () => {
           </div>
         ) : (
           <div className="space-y-6">
-            {SERVICE_ORDER.map((service) => {
-              const cfg = SERVICES[service];
+            {CONNECT_SERVICES.map(({ service, label }) => {
               const items = byService(service);
               return (
-                <ServiceSection
+                <div
                   key={service}
-                  service={service}
-                  config={cfg}
-                  items={items}
-                  expanded={expandedService === service}
-                  onToggle={() =>
-                    setExpandedService((prev) =>
-                      prev === service ? null : service,
-                    )
-                  }
-                  onDelete={handleDelete}
-                  onCreated={() => void load()}
-                />
+                  className="rounded-lg border border-gray-800 bg-gray-900 px-5 py-4"
+                >
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold">{label}</h3>
+                    <div className="flex items-center gap-3">
+                      {items.length > 0 && (
+                        <span className="rounded-full bg-green-900/40 px-2 py-0.5 text-xs font-medium text-green-400">
+                          Connected ✓
+                        </span>
+                      )}
+                      <button
+                        onClick={() => setConnectModal(service)}
+                        className="rounded border border-gray-700 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:border-gray-500 hover:text-white"
+                      >
+                        Connect
+                      </button>
+                    </div>
+                  </div>
+
+                  {items.length > 0 && (
+                    <div className="mt-4 space-y-2 border-t border-gray-800 pt-4">
+                      {items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between"
+                        >
+                          <div>
+                            <span className="text-sm font-medium">{item.name}</span>
+                            <span className="ml-3 text-xs text-gray-500">
+                              Added {new Date(item.created_at).toLocaleDateString()}
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => handleDisconnect(item.id)}
+                            className="text-xs text-red-400 hover:text-red-300"
+                          >
+                            Disconnect
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               );
             })}
           </div>
         )}
       </main>
-    </div>
-  );
-};
 
-interface ServiceSectionProps {
-  service: ServiceType;
-  config: ServiceConfig;
-  items: IntegrationSummary[];
-  expanded: boolean;
-  onToggle: () => void;
-  onDelete: (id: string) => void;
-  onCreated: () => void;
-}
-
-const ServiceSection = ({
-  service,
-  config,
-  items,
-  expanded,
-  onToggle,
-  onDelete,
-  onCreated,
-}: ServiceSectionProps) => {
-  return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900">
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-md bg-gray-800 text-sm font-bold text-gray-300">
-            {config.icon}
-          </div>
-          <div>
-            <h3 className="font-semibold">{config.label}</h3>
-            <p className="text-xs text-gray-500">{config.description}</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-gray-500">
-            {items.length} connected
-          </span>
-          <button
-            onClick={onToggle}
-            className="rounded border border-gray-700 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:border-gray-500 hover:text-white"
-          >
-            {expanded ? "Cancel" : "+ Add Connection"}
-          </button>
-        </div>
-      </div>
-
-      {items.length > 0 && (
-        <div className="border-t border-gray-800 px-5 py-3">
-          {items.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center justify-between py-2"
-            >
-              <div>
-                <span className="text-sm font-medium">{item.name}</span>
-                <span className="ml-3 text-xs text-gray-500">
-                  Added {new Date(item.created_at).toLocaleDateString()}
-                </span>
-              </div>
-              <button
-                onClick={() => onDelete(item.id)}
-                className="text-xs text-red-400 hover:text-red-300"
-              >
-                Delete
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {expanded && (
-        <AddForm service={service} config={config} onCreated={onCreated} onClose={onToggle} />
+      {connectModal && (
+        <ConnectModal
+          service={connectModal}
+          onClose={() => setConnectModal(null)}
+          onSaved={() => {
+            void load();
+            setConnectModal(null);
+          }}
+        />
       )}
     </div>
   );
 };
 
-interface AddFormProps {
-  service: ServiceType;
-  config: ServiceConfig;
-  onCreated: () => void;
+interface ConnectModalProps {
+  service: ConnectServiceType;
   onClose: () => void;
+  onSaved: () => void;
 }
 
-const AddForm = ({ service, config, onCreated, onClose }: AddFormProps) => {
-  const [name, setName] = useState("");
-  const [fields, setFields] = useState<Record<string, string>>({});
+const ConnectModal = ({ service, onClose, onSaved }: ConnectModalProps) => {
+  const [token, setToken] = useState("");
+  const [owner, setOwner] = useState("");
+  const [repo, setRepo] = useState("");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState<{
-    success: boolean;
-    message: string;
-  } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const buildCredentials = (): Record<string, unknown> => {
-    if (service === "http") {
-      try {
-        return { headers: JSON.parse(fields["headers"] ?? "{}") };
-      } catch {
-        return { headers: {} };
-      }
+  const getCredentials = (): Record<string, unknown> => {
+    if (service === "github") {
+      return { token: token.trim(), owner: owner.trim(), repo: repo.trim() };
     }
-    return { ...fields };
-  };
-
-  const handleTest = async () => {
-    if (service === "http") return;
-    setTesting(true);
-    setTestResult(null);
-    try {
-      const creds = buildCredentials();
-      const result = await testIntegration(service, creds);
-      setTestResult({
-        success: result.success,
-        message: result.message ?? result.error ?? "Unknown result",
-      });
-    } catch {
-      setTestResult({ success: false, message: "Connection test failed" });
-    } finally {
-      setTesting(false);
-    }
+    return { webhookUrl: webhookUrl.trim() };
   };
 
   const handleSave = async () => {
-    if (!name.trim()) {
-      setError("Name is required");
-      return;
+    const creds = getCredentials();
+    if (service === "github") {
+      if (!(creds.token as string) || !(creds.owner as string) || !(creds.repo as string)) {
+        setError("Token, Owner, and Repository are required");
+        return;
+      }
+    } else {
+      if (!(creds.webhookUrl as string)) {
+        setError("Webhook URL is required");
+        return;
+      }
     }
+
     setSaving(true);
     setError(null);
     try {
-      await createIntegration(service, name.trim(), buildCredentials());
-      onCreated();
-      onClose();
+      await createIntegration(service, creds);
+      onSaved();
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Failed to create integration";
-      setError(msg);
+      setError(err instanceof Error ? err.message : "Failed to connect");
     } finally {
       setSaving(false);
     }
   };
 
-  return (
-    <div className="border-t border-gray-800 px-5 py-4">
-      <div className="space-y-3">
-        <div>
-          <label className="mb-1 block text-xs text-gray-400">
-            Connection Name
-          </label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder={`My ${config.label}`}
-            className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
-          />
-        </div>
+  const labels: Record<ConnectServiceType, string> = {
+    slack: "Connect Slack",
+    discord: "Connect Discord",
+    github: "Connect GitHub",
+  };
 
-        {config.fields.map((f) => (
-          <div key={f.key}>
-            <label className="mb-1 block text-xs text-gray-400">
-              {f.label}
-            </label>
-            {f.type === "textarea" ? (
-              <textarea
-                value={fields[f.key] ?? ""}
-                onChange={(e) =>
-                  setFields((prev) => ({ ...prev, [f.key]: e.target.value }))
-                }
-                rows={3}
-                placeholder={f.key === "headers" ? '{"Authorization": "Bearer ..."}' : ""}
-                className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 font-mono text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
-              />
-            ) : (
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+      <div className="w-full max-w-md rounded-lg border border-gray-700 bg-gray-900 p-6 shadow-xl">
+        <h3 className="mb-4 text-lg font-semibold">{labels[service]}</h3>
+
+        {service === "github" ? (
+          <div className="space-y-3">
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">
+                Personal Access Token
+              </label>
               <input
-                type={f.type === "password" ? "password" : "text"}
-                value={fields[f.key] ?? ""}
-                onChange={(e) =>
-                  setFields((prev) => ({ ...prev, [f.key]: e.target.value }))
-                }
-                placeholder={f.type === "url" ? "https://..." : ""}
+                type="password"
+                value={token}
+                onChange={(e) => setToken(e.target.value)}
+                placeholder="ghp_..."
                 className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
               />
-            )}
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">
+                Repository Owner (username or org)
+              </label>
+              <input
+                type="text"
+                value={owner}
+                onChange={(e) => setOwner(e.target.value)}
+                placeholder="myorg or myusername"
+                className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
+              />
+            </div>
+            <div>
+              <label className="mb-1 block text-xs text-gray-400">
+                Repository
+              </label>
+              <input
+                type="text"
+                value={repo}
+                onChange={(e) => setRepo(e.target.value)}
+                placeholder="my-repo"
+                className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
+              />
+            </div>
           </div>
-        ))}
-
-        {testResult && (
-          <div
-            className={`rounded px-3 py-2 text-sm ${
-              testResult.success
-                ? "bg-green-900/30 text-green-400"
-                : "bg-red-900/30 text-red-400"
-            }`}
-          >
-            {testResult.success ? "\u2705" : "\u274c"} {testResult.message}
+        ) : (
+          <div>
+            <label className="mb-1 block text-xs text-gray-400">
+              Webhook URL
+            </label>
+            <input
+              type="url"
+              value={webhookUrl}
+              onChange={(e) => setWebhookUrl(e.target.value)}
+              placeholder="https://hooks.slack.com/... or https://discord.com/api/webhooks/..."
+              className="w-full rounded border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white placeholder-gray-500 outline-none focus:border-blue-500"
+            />
           </div>
         )}
 
         {error && (
-          <div className="rounded bg-red-900/30 px-3 py-2 text-sm text-red-400">
+          <div className="mt-3 rounded bg-red-900/30 px-3 py-2 text-sm text-red-400">
             {error}
           </div>
         )}
 
-        <div className="flex items-center gap-3 pt-1">
-          {service !== "http" && (
-            <button
-              onClick={() => void handleTest()}
-              disabled={testing}
-              className="rounded border border-gray-700 px-4 py-2 text-sm text-gray-300 transition-colors hover:border-gray-500 hover:text-white disabled:opacity-50"
-            >
-              {testing ? "Testing..." : "Test Connection"}
-            </button>
-          )}
+        <div className="mt-6 flex justify-end gap-2">
+          <button
+            onClick={onClose}
+            className="rounded border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+          >
+            Cancel
+          </button>
           <button
             onClick={() => void handleSave()}
             disabled={saving}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-500 disabled:opacity-50"
+            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save Integration"}
+            {saving ? "Saving..." : "Save"}
           </button>
         </div>
       </div>

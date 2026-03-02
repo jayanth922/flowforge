@@ -25,7 +25,7 @@ const httpCredentials = z.object({ headers: z.record(z.string()) });
 
 const createSchema = z.object({
   service: serviceEnum,
-  name: z.string().min(1).max(100),
+  name: z.string().min(1).max(100).optional(),
   credentials: z.record(z.unknown()),
 });
 
@@ -86,7 +86,7 @@ integrationRouter.post("/", async (req, res, next) => {
       return;
     }
 
-    const { service, name, credentials } = parsed.data;
+    const { service, name: nameParam, credentials } = parsed.data;
     const credValidation = validateCredentials(service, credentials);
     if (!credValidation.success) {
       res.status(400).json({
@@ -98,6 +98,14 @@ integrationRouter.post("/", async (req, res, next) => {
     }
 
     const { tenantId } = req.user!;
+    let name = nameParam;
+    if (!name) {
+      const existing = await listIntegrations(tenantId, service);
+      const base = `My ${service.charAt(0).toUpperCase() + service.slice(1)}`;
+      const names = new Set(existing.map((i) => i.name));
+      name = base;
+      for (let n = 2; names.has(name); n++) name = `${base} ${n}`;
+    }
     const integration = await createIntegration(tenantId, service, name, credentials);
     res.status(201).json({ success: true, data: integration });
   } catch (err) {

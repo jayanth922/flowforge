@@ -178,12 +178,15 @@ export const listIntegrations = async (
 
 export const createIntegration = async (
   service: string,
-  name: string,
   credentials: Record<string, unknown>,
+  name?: string,
 ): Promise<IntegrationSummary> => {
+  const body = name
+    ? { service, name, credentials }
+    : { service, credentials };
   const res = await api.post<{ success: true; data: IntegrationSummary }>(
     "/integrations",
-    { service, name, credentials },
+    body,
   );
   return res.data.data;
 };

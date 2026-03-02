@@ -15,9 +15,7 @@ export const createGithubIssue = async (
   context: Record<string, unknown>,
   credentials?: Record<string, unknown>,
 ): Promise<IntegrationResult> => {
-  const token =
-    (credentials?.["token"] as string | undefined) ??
-    process.env["GITHUB_TOKEN"];
+  const token = credentials?.["token"] as string | undefined;
   if (!token) {
     return { success: false, error: "No GitHub token configured" };
   }
