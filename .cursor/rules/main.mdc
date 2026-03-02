@@ -1,3 +1,34 @@
 ---
 alwaysApply: true
 ---
+
+# FlowForge — Cursor Rules
+
+## Stack
+- Backend: Node.js, Express.js, TypeScript
+- Frontend: React 18, TypeScript, ReactFlow, TailwindCSS
+- DBs: PostgreSQL via Supabase (users, tenants, workflows, executions, integrations),
+       MongoDB Atlas (workflow DAG definitions, execution logs)
+- Auth: JWT (access token 15min, refresh token 7d)
+- LLM: Groq API (Llama 3.3 70B) with structured JSON output (Zod schema validation)
+- Deployment: Vercel (frontend), Render (backend), Supabase, MongoDB Atlas
+
+## Development Rules
+1. Before writing ANY code, propose a step-by-step plan and wait for approval
+2. Use TypeScript strictly — never use `any`, always infer from Zod schemas
+3. All API routes follow /api/v1/ prefix for versioning
+4. Every database operation uses parameterized queries — no string concatenation
+5. All inputs validated with Zod before processing
+6. Error responses always follow { success: false, error: string, code: string }
+7. Success responses always follow { success: true, data: T }
+8. Never start a dev server or curl localhost in responses
+9. Run `tsc --noEmit` after every change
+10. MongoDB for: workflow DAG JSON, execution step logs
+    PostgreSQL for: users, tenants, workflows, workflow_executions, tenant_integrations
+
+## What NOT to do
+- Do not add features outside SPEC.md scope
+- Do not use `any` TypeScript type
+- Do not use ORM magic — write explicit queries
+- Do not create new npm packages without asking
+- Do not use classes — functional patterns only

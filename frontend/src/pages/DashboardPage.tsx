@@ -18,14 +18,14 @@ const formatDate = (iso: string) =>
   });
 
 const SkeletonCard = () => (
-  <div className="flex flex-col gap-3 rounded-lg border border-gray-800 bg-gray-900/50 p-4 animate-pulse">
+  <div className="flex flex-col gap-3 rounded-xl border border-white/5 bg-gray-900/30 p-5 backdrop-blur-sm animate-pulse">
     <div className="flex items-center justify-between">
-      <div className="h-4 w-32 rounded bg-gray-700" />
-      <div className="h-5 w-14 rounded-full bg-gray-700" />
+      <div className="h-5 w-1/2 rounded-md bg-white/10" />
+      <div className="h-5 w-14 rounded-full bg-white/10" />
     </div>
-    <div className="h-3 w-full rounded bg-gray-800" />
-    <div className="h-3 w-2/3 rounded bg-gray-800" />
-    <div className="mt-auto h-3 w-20 rounded bg-gray-800" />
+    <div className="h-3 w-full rounded bg-white/5 mt-2" />
+    <div className="h-3 w-3/4 rounded bg-white/5" />
+    <div className="mt-8 h-3 w-24 rounded bg-white/5" />
   </div>
 );
 
@@ -65,7 +65,7 @@ const DashboardPage = () => {
         setWorkflows(wf);
         setStats(st);
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => setLoading(false));
   }, []);
 
@@ -74,13 +74,16 @@ const DashboardPage = () => {
       <NavHeader />
 
       <main className="mx-auto max-w-6xl px-6 py-8">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-lg font-semibold text-white">Your Workflows</h2>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-white">Your Workflows</h2>
+            <p className="mt-1 text-sm text-gray-400">Manage and monitor your automated processes.</p>
+          </div>
           <button
             onClick={() => navigate("/workflows/new")}
-            className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+            className="rounded-lg bg-white/10 border border-white/10 px-5 py-2.5 text-sm font-semibold text-white transition-all hover:bg-white/20 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] active:scale-[0.98]"
           >
-            New Workflow
+            + New Workflow
           </button>
         </div>
 
@@ -91,53 +94,65 @@ const DashboardPage = () => {
             ))}
           </div>
         ) : workflows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-700 py-20">
-            <p className="mb-4 text-gray-500">
-              No workflows yet. Create your first workflow &rarr;
-            </p>
-            <button
-              onClick={() => navigate("/workflows/new")}
-              className="rounded-lg bg-blue-600 px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
-            >
-              Create Workflow
-            </button>
+          <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-gray-900/40 p-12 text-center backdrop-blur-md shadow-2xl">
+            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-transparent to-blue-500/10 pointer-events-none" />
+            <div className="relative z-10 flex flex-col items-center">
+              <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-white/5 border border-white/10 shadow-[0_0_30px_rgba(168,85,247,0.2)]">
+                <svg className="h-10 w-10 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+              <h3 className="mb-2 text-2xl font-bold tracking-tight text-white">Automate Your Velocity</h3>
+              <p className="mb-8 max-w-md text-gray-400 leading-relaxed">
+                Describe your business process in plain English and watch FlowForge compile it into a visual workflow instantly.
+              </p>
+              <button
+                onClick={() => navigate("/workflows/new")}
+                className="group relative overflow-hidden rounded-xl bg-purple-600 px-8 py-3.5 text-sm font-bold text-white transition-all hover:bg-purple-500 hover:shadow-[0_0_30px_rgba(168,85,247,0.4)] active:scale-[0.98]"
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  Create Your First Workflow <span className="transition-transform group-hover:translate-x-1">&rarr;</span>
+                </span>
+              </button>
+            </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             {workflows.map((w) => (
               <button
                 key={w.id}
                 onClick={() => navigate(`/workflows/${w.id}`)}
-                className="flex flex-col gap-2 rounded-lg border border-gray-800 bg-gray-900/50 p-4 text-left transition-colors hover:border-gray-700 hover:bg-gray-900"
+                className="group flex flex-col gap-3 rounded-xl border border-white/5 bg-gray-900/40 p-6 text-left backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/10 hover:bg-gray-800/60 shadow-lg hover:shadow-purple-500/10"
               >
-                <div className="flex items-center justify-between">
-                  <span className="font-medium text-white">{w.name}</span>
+                <div className="flex w-full items-start justify-between gap-4">
+                  <span className="font-bold tracking-tight text-white line-clamp-1">{w.name}</span>
                   <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_BADGE[w.status]}`}
+                    className={`shrink-0 rounded-full px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider ${STATUS_BADGE[w.status]}`}
                   >
                     {w.status}
                   </span>
                 </div>
                 {w.description && (
-                  <p className="line-clamp-2 text-sm text-gray-500">
+                  <p className="line-clamp-2 text-sm leading-relaxed text-gray-400">
                     {w.description}
                   </p>
                 )}
-                {(() => {
-                  const s = stats[w.id];
-                  if (!s) return <p className="mt-1 text-xs text-gray-600">No executions yet</p>;
-                  return (
-                    <p className="mt-1 text-xs text-gray-500">
-                      Last run: {s.lastRunAt ? formatRelativeTime(s.lastRunAt) : "—"} {STATUS_ICON[s.lastStatus ?? ""] ?? ""} {s.lastStatus}
-                      <span className="ml-2 text-gray-600">
-                        &middot; {s.totalExecutions} execution{s.totalExecutions !== 1 ? "s" : ""}
-                      </span>
-                    </p>
-                  );
-                })()}
-                <p className="mt-auto text-xs text-gray-600">
-                  {formatDate(w.created_at)}
-                </p>
+                <div className="mt-4 pt-4 border-t border-white/5">
+                  {(() => {
+                    const s = stats[w.id];
+                    if (!s) return <p className="text-xs font-medium text-gray-500">No executions yet</p>;
+                    return (
+                      <div className="flex flex-col gap-1">
+                        <p className="text-xs font-medium text-gray-400">
+                          <span className="text-gray-500">Last run:</span> {s.lastRunAt ? formatRelativeTime(s.lastRunAt) : "—"} {STATUS_ICON[s.lastStatus ?? ""] ?? ""} <span className="capitalize">{s.lastStatus}</span>
+                        </p>
+                        <p className="text-xs font-medium text-gray-500">
+                          {s.totalExecutions} total execution{s.totalExecutions !== 1 ? "s" : ""}
+                        </p>
+                      </div>
+                    );
+                  })()}
+                </div>
               </button>
             ))}
           </div>

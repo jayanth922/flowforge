@@ -103,47 +103,48 @@ const TemplateCard = ({ template }: { template: Template }) => {
   };
 
   return (
-    <div className="rounded-lg border border-gray-800 bg-gray-900/50">
-      <div className="p-5">
-        <h3 className="text-lg font-semibold text-white">{template.name}</h3>
-        <p className="mt-1 text-sm leading-relaxed text-gray-400">
+    <div className="group overflow-hidden rounded-xl border border-white/5 bg-gray-900/40 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/10 hover:bg-gray-800/60 shadow-lg hover:shadow-purple-500/10">
+      <div className="p-6">
+        <h3 className="text-xl font-bold tracking-tight text-white mb-2">{template.name}</h3>
+        <p className="text-sm leading-relaxed text-gray-400">
           {template.description}
         </p>
 
-        <div className="mt-3 flex flex-wrap gap-1.5">
+        <div className="mt-4 flex flex-wrap gap-2">
           {template.tags.map((tag) => (
             <span
               key={tag}
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${TAG_COLORS[tag] ?? "bg-gray-500/20 text-gray-300"}`}
+              className={`rounded-full px-3 py-1 text-xs font-semibold tracking-wide ${TAG_COLORS[tag] ?? "bg-white/5 text-gray-300 border border-white/10"}`}
             >
               {tag}
             </span>
           ))}
         </div>
 
-        <p className="mt-3 text-xs text-gray-600">
-          {template.nodes.length} nodes &middot;{" "}
-          {template.edges.length} connections
+        <p className="mt-4 text-xs font-medium text-gray-500 flex items-center gap-2">
+          <span>{template.nodes.length} nodes</span>
+          <span className="h-1 w-1 rounded-full bg-gray-600"></span>
+          <span>{template.edges.length} connections</span>
         </p>
 
-        <div className="mt-4 flex gap-2">
+        <div className="mt-6 pt-4 border-t border-white/5 flex gap-3">
           <button
             onClick={() => setShowPreview(!showPreview)}
-            className="rounded-md border border-gray-700 bg-gray-800 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:bg-gray-700"
+            className="flex-1 rounded-lg border border-white/10 bg-transparent px-4 py-2.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/5 hover:text-white active:scale-[0.98]"
           >
             {showPreview ? "Hide Preview" : "Preview DAG"}
           </button>
           <button
             onClick={handleUseTemplate}
-            className="rounded-md bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-blue-500"
+            className="flex-1 relative overflow-hidden rounded-lg bg-purple-600 px-4 py-2.5 text-sm font-bold text-white transition-all hover:bg-purple-500 active:scale-[0.98] shadow-[0_0_15px_rgba(168,85,247,0.2)]"
           >
-            Use This Template
+            Use Template
           </button>
         </div>
       </div>
 
       {showPreview && (
-        <div className="h-64 border-t border-gray-800">
+        <div className="h-64 border-t border-white/5 bg-black/20">
           <WorkflowCanvas
             nodes={template.nodes}
             edges={template.edges}
@@ -163,11 +164,13 @@ const TemplatesPage = () => {
     <div className="min-h-screen bg-gray-950">
       <NavHeader />
 
-      <main className="mx-auto max-w-5xl px-6 py-8">
-        <h2 className="text-xl font-bold text-white">Workflow Templates</h2>
-        <p className="mt-1 text-sm text-gray-500">
-          Pre-built workflows with real integration configurations
-        </p>
+      <main className="mx-auto max-w-6xl px-6 py-8">
+        <div className="mb-8 flex flex-col items-start">
+          <h2 className="text-2xl font-bold tracking-tight text-white">Workflow Templates</h2>
+          <p className="mt-1 text-sm text-gray-400">
+            Pre-built workflows with real integration configurations.
+          </p>
+        </div>
 
         <div className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-2">
           {TEMPLATES.map((t) => (

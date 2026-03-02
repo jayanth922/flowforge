@@ -1,3 +1,36 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-white antialiased selection:bg-purple-500/30;
+  }
+
+  /* Custom scrollbar for webkit */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-gray-800 rounded-full hover:bg-gray-700 transition-colors;
+  }
+}
+
+#mesh-gradient-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: -1;
+  background: radial-gradient(circle at 15% 50%, rgba(76, 29, 149, 0.15), transparent 25%),
+              radial-gradient(circle at 85% 30%, rgba(147, 51, 234, 0.15), transparent 25%),
+              radial-gradient(circle at 50% 80%, rgba(59, 130, 246, 0.1), transparent 25%);
+  background-size: 200% 200%;
+  animation: mesh-flow 15s ease infinite;
+  pointer-events: none;
+}

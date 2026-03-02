@@ -12,7 +12,7 @@ const NavHeader = () => {
   };
 
   return (
-    <header className="border-b border-gray-800 bg-gray-950 px-6 py-3">
+    <header className="sticky top-0 z-40 border-b border-white/5 bg-gray-950/70 px-6 py-3 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link
           to="/dashboard"

@@ -74,10 +74,10 @@ const NODE_STYLES: Record<
 
 const STEP_OVERRIDES: Record<StepStatus, string> = {
   pending: "opacity-60",
-  running: "animate-pulse ring-2 ring-blue-400",
-  completed: "!bg-green-800/70 !border-green-400",
-  failed: "!bg-red-800/70 !border-red-400",
-  skipped: "opacity-40 !border-dashed",
+  running: "animate-[pulse-glow_2s_ease-in-out_infinite] ring-2 ring-purple-500 shadow-[0_0_25px_rgba(168,85,247,0.5)] !border-purple-400 z-10",
+  completed: "!bg-green-900/40 !border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]",
+  failed: "!bg-red-900/40 !border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]",
+  skipped: "opacity-40 !border-dashed !border-gray-600",
 };
 
 const STEP_PREFIX: Record<StepStatus, string> = {

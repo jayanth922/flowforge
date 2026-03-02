@@ -9,10 +9,28 @@ import {
 
 type ConnectServiceType = "slack" | "discord" | "github";
 
-const CONNECT_SERVICES: { service: ConnectServiceType; label: string }[] = [
-  { service: "slack", label: "Slack" },
-  { service: "discord", label: "Discord" },
-  { service: "github", label: "GitHub" },
+const CONNECT_SERVICES: { service: ConnectServiceType; label: string; desc: string; icon: string; brandClass: string }[] = [
+  {
+    service: "slack",
+    label: "Slack",
+    desc: "Send notifications and automatic alerts to your workspace channels.",
+    icon: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/slack.svg",
+    brandClass: "group-hover:shadow-purple-500/20 shadow-purple-500/0"
+  },
+  {
+    service: "discord",
+    label: "Discord",
+    desc: "Trigger webhooks to post rich embedded messages into Discord servers.",
+    icon: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/discord.svg",
+    brandClass: "group-hover:shadow-indigo-500/20 shadow-indigo-500/0"
+  },
+  {
+    service: "github",
+    label: "GitHub",
+    desc: "Create issues, comments, or trigger actions in any GitHub repository.",
+    icon: "https://cdn.jsdelivr.net/npm/simple-icons@v11/icons/github.svg",
+    brandClass: "group-hover:shadow-gray-400/20 shadow-gray-400/0"
+  },
 ];
 
 const IntegrationsPage = () => {
@@ -62,57 +80,64 @@ const IntegrationsPage = () => {
 
         {loading ? (
           <div className="flex justify-center py-20">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-700 border-t-blue-500" />
+            <div className="h-6 w-6 animate-spin rounded-full border-2 border-gray-700 border-t-purple-500" />
           </div>
         ) : (
-          <div className="space-y-6">
-            {CONNECT_SERVICES.map(({ service, label }) => {
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {CONNECT_SERVICES.map(({ service, label, desc, icon, brandClass }) => {
               const items = byService(service);
               return (
                 <div
                   key={service}
-                  className="rounded-lg border border-gray-800 bg-gray-900 px-5 py-4"
+                  className={`group relative flex flex-col justify-between overflow-hidden rounded-xl border border-white/5 bg-gray-900/40 p-6 backdrop-blur-sm transition-all duration-300 hover:-translate-y-1 hover:border-white/10 hover:bg-gray-800/60 shadow-lg ${brandClass}`}
                 >
-                  <div className="flex items-center justify-between">
-                    <h3 className="font-semibold">{label}</h3>
-                    <div className="flex items-center gap-3">
+                  <div className="mb-6">
+                    <div className="mb-4 flex items-center justify-between">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/5 border border-white/10 transition-transform duration-300 group-hover:scale-110">
+                        <img src={icon} alt={label} className="h-6 w-6 opacity-80 filter invert" />
+                      </div>
                       {items.length > 0 && (
-                        <span className="rounded-full bg-green-900/40 px-2 py-0.5 text-xs font-medium text-green-400">
-                          Connected ✓
-                        </span>
+                        <div className="flex items-center gap-1.5 rounded-full border border-green-500/20 bg-green-500/10 px-2.5 py-1 text-xs font-semibold tracking-wide text-green-400">
+                          <span className="relative flex h-2 w-2">
+                            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex h-2 w-2 rounded-full bg-green-500"></span>
+                          </span>
+                          Active
+                        </div>
                       )}
-                      <button
-                        onClick={() => setConnectModal(service)}
-                        className="rounded border border-gray-700 px-3 py-1.5 text-xs text-gray-300 transition-colors hover:border-gray-500 hover:text-white"
-                      >
-                        Connect
-                      </button>
                     </div>
+                    <h3 className="mb-2 text-lg font-bold tracking-tight text-white">{label}</h3>
+                    <p className="text-sm leading-relaxed text-gray-400">{desc}</p>
                   </div>
 
-                  {items.length > 0 && (
-                    <div className="mt-4 space-y-2 border-t border-gray-800 pt-4">
-                      {items.map((item) => (
-                        <div
-                          key={item.id}
-                          className="flex items-center justify-between"
-                        >
-                          <div>
-                            <span className="text-sm font-medium">{item.name}</span>
-                            <span className="ml-3 text-xs text-gray-500">
-                              Added {new Date(item.created_at).toLocaleDateString()}
-                            </span>
-                          </div>
-                          <button
-                            onClick={() => handleDisconnect(item.id)}
-                            className="text-xs text-red-400 hover:text-red-300"
+                  <div className="mt-auto flex flex-col gap-3">
+                    {items.length > 0 && (
+                      <div className="mb-2 flex flex-col gap-2 rounded-lg border border-white/5 bg-black/20 p-3">
+                        {items.map((item) => (
+                          <div
+                            key={item.id}
+                            className="flex items-center justify-between"
                           >
-                            Disconnect
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                            <span className="truncate text-xs font-medium text-gray-300" title={item.name}>
+                              {item.name}
+                            </span>
+                            <button
+                              onClick={() => handleDisconnect(item.id)}
+                              className="ml-2 text-[10px] font-semibold text-red-500 transition-colors hover:text-red-400"
+                            >
+                              DISCONNECT
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setConnectModal(service)}
+                      className="w-full rounded-lg bg-white/5 py-2.5 text-sm font-semibold text-white transition-all duration-300 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(255,255,255,0.1)] active:scale-[0.98]"
+                    >
+                      {items.length > 0 ? "+ Add Another" : "Connect"}
+                    </button>
+                  </div>
                 </div>
               );
             })}
@@ -188,9 +213,9 @@ const ConnectModal = ({ service, onClose, onSaved }: ConnectModalProps) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-      <div className="w-full max-w-md rounded-lg border border-gray-700 bg-gray-900 p-6 shadow-xl">
-        <h3 className="mb-4 text-lg font-semibold">{labels[service]}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-2xl border border-white/10 bg-gray-900/90 p-8 shadow-2xl backdrop-blur-md">
+        <h3 className="mb-6 text-xl font-bold tracking-tight text-white">{labels[service]}</h3>
 
         {service === "github" ? (
           <div className="space-y-3">
@@ -252,19 +277,19 @@ const ConnectModal = ({ service, onClose, onSaved }: ConnectModalProps) => {
           </div>
         )}
 
-        <div className="mt-6 flex justify-end gap-2">
+        <div className="mt-8 flex justify-end gap-3">
           <button
             onClick={onClose}
-            className="rounded border border-gray-700 px-4 py-2 text-sm text-gray-300 hover:bg-gray-800"
+            className="rounded-lg border border-white/10 bg-transparent px-5 py-2.5 text-sm font-semibold text-gray-300 transition-colors hover:bg-white/5 hover:text-white"
           >
             Cancel
           </button>
           <button
             onClick={() => void handleSave()}
             disabled={saving}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 disabled:opacity-50"
+            className="relative overflow-hidden rounded-lg bg-purple-600 px-5 py-2.5 text-sm font-bold text-white transition-all hover:bg-purple-500 active:scale-[0.98] disabled:opacity-50"
           >
-            {saving ? "Saving..." : "Save"}
+            {saving ? "Saving..." : "Save Connection"}
           </button>
         </div>
       </div>
