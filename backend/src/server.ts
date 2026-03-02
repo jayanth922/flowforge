@@ -6,7 +6,6 @@ import { logger } from "./utils/logger.js";
 import { connectPostgres } from "./db/postgres.js";
 import { connectMongo } from "./db/mongo.js";
 import { runMigrations } from "./db/migrate.js";
-import { seedIfEmpty } from "./db/seed.js";
 import { initializeScheduler } from "./services/schedulerService.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
@@ -23,7 +22,6 @@ import {
   workflowExecuteRouter,
   executionRouter,
 } from "./routes/executions.js";
-import { demoRouter } from "./routes/demo.js";
 import { webhookRouter } from "./routes/webhooks.js";
 import { integrationRouter } from "./routes/integrations.js";
 
@@ -55,7 +53,6 @@ app.use("/api/v1/workflows/compile", compileLimiter);
 app.use("/api/v1/workflows", workflowRouter);
 app.use("/api/v1/workflows", workflowExecuteRouter);
 app.use("/api/v1/executions", executionRouter);
-app.use("/api/v1/demo", demoRouter);
 app.use("/api/v1/webhooks", webhookLimiter, webhookRouter);
 app.use("/api/v1/integrations", integrationRouter);
 
@@ -75,12 +72,6 @@ const start = async () => {
     await connectMongo();
   } catch (err) {
     logger.warn({ err }, "MongoDB connection failed, continuing without MongoDB");
-  }
-
-  try {
-    await seedIfEmpty();
-  } catch (err) {
-    logger.warn({ err }, "seed failed, continuing without seed data");
   }
 
   try {

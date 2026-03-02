@@ -1,5 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { Component, useEffect, useState, useMemo, useCallback } from "react";
+import type { ReactNode, ErrorInfo } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import {
   compileWorkflow,
   getWorkflowDag,
@@ -19,6 +20,47 @@ import WorkflowCanvas from "../components/workflow/WorkflowCanvas";
 import ExecutionLogPanel from "../components/workflow/ExecutionLogPanel";
 import type { DAGNode, DAGEdge, StepStatus, NodeType } from "../types/api";
 import "@xyflow/react/dist/style.css";
+
+class EditorErrorBoundary extends Component<
+  { children: ReactNode },
+  { hasError: boolean; message: string }
+> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, message: error.message };
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    console.error("WorkflowEditorPage crashed:", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex h-screen flex-col items-center justify-center bg-gray-950 text-white">
+          <h2 className="mb-2 text-lg font-semibold">Something went wrong</h2>
+          <p className="mb-4 max-w-md text-center text-sm text-gray-400">
+            {this.state.message || "An unexpected error occurred while rendering this page."}
+          </p>
+          <button
+            onClick={() => {
+              this.setState({ hasError: false, message: "" });
+              window.location.reload();
+            }}
+            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const Spinner = () => (
   <svg
@@ -43,7 +85,7 @@ const Spinner = () => (
   </svg>
 );
 
-const WorkflowEditorPage = () => {
+const WorkflowEditorPageInner = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const isNewMode = !id || id === "new";
@@ -114,9 +156,24 @@ const WorkflowEditorPage = () => {
         nodes: DAGNode[];
         edges: DAGEdge[];
       };
-      setPrompt(template.prompt);
-      setNodes(template.nodes);
-      setEdges(template.edges);
+      setPrompt("");
+      setNodes([]);
+      setEdges([]);
+      setWorkflowName(null);
+      setWorkflowId(null);
+      setError(null);
+      setExecError(null);
+      setExecutionId(null);
+      setSelectedNodeId(null);
+      setAvailableIntegrations([]);
+      setWebhookEnabled(false);
+      setWebhookUrl(null);
+      setCronExpr("");
+      setCronValidation(null);
+
+      setPrompt(template.prompt ?? "");
+      setNodes(template.nodes ?? []);
+      setEdges(template.edges ?? []);
     } catch {
       // ignore malformed template
     }
@@ -125,11 +182,14 @@ const WorkflowEditorPage = () => {
   useEffect(() => {
     if (isNewMode) return;
 
+    let mounted = true;
+
     getWorkflowDag(id)
       .then((dag) => {
-        setNodes(dag.dag.nodes);
-        setEdges(dag.dag.edges);
-        setPrompt(dag.naturalLanguagePrompt);
+        if (!mounted) return;
+        setNodes(dag.dag.nodes ?? []);
+        setEdges(dag.dag.edges ?? []);
+        setPrompt(dag.naturalLanguagePrompt ?? "");
 
         const trigger = dag.dag.nodes.find((n) => n.type === "trigger");
         if (trigger?.config?.cronExpression && typeof trigger.config.cronExpression === "string") {
@@ -137,16 +197,23 @@ const WorkflowEditorPage = () => {
         }
       })
       .catch(() => {
-        setError("Failed to load workflow");
+        if (mounted) setError("Failed to load workflow");
       })
-      .finally(() => setPageLoading(false));
+      .finally(() => {
+        if (mounted) setPageLoading(false);
+      });
 
     getWebhookStatus(id)
       .then((status) => {
+        if (!mounted) return;
         setWebhookEnabled(status.webhookEnabled);
         setWebhookUrl(status.webhookUrl);
       })
       .catch(() => {});
+
+    return () => {
+      mounted = false;
+    };
   }, [id, isNewMode]);
 
   const handleCompile = async () => {
@@ -156,10 +223,10 @@ const WorkflowEditorPage = () => {
 
     try {
       const response = await compileWorkflow(prompt);
-      setNodes(response.dag.nodes);
-      setEdges(response.dag.edges);
-      setWorkflowId(response.workflowId);
-      setWorkflowName(response.dag.suggestedName ?? null);
+      setNodes(response.dag?.nodes ?? []);
+      setEdges(response.dag?.edges ?? []);
+      setWorkflowId(response.workflowId ?? null);
+      setWorkflowName(response.dag?.suggestedName ?? null);
 
       if (isNewMode) {
         navigate(`/workflows/${response.workflowId}`, { replace: true });
@@ -748,5 +815,14 @@ const ConfigField = ({ label, type, value, hint, onChange }: ConfigFieldProps) =
     {hint && <p className="mt-0.5 text-[10px] text-gray-500">{hint}</p>}
   </div>
 );
+
+const WorkflowEditorPage = () => {
+  const location = useLocation();
+  return (
+    <EditorErrorBoundary>
+      <WorkflowEditorPageInner key={location.key} />
+    </EditorErrorBoundary>
+  );
+};
 
 export default WorkflowEditorPage;

@@ -35,8 +35,8 @@ const TEMPLATES: Template[] = [
     nodes: [
       { id: "node_1", type: "trigger", label: "Payment Failed", config: { triggerType: "webhook" }, position: { x: 0, y: 0 } },
       { id: "node_2", type: "condition", label: "High Value?", config: { expression: "{{payload.amount}} > 500" }, position: { x: 250, y: 0 } },
-      { id: "node_3", type: "post_slack", label: "Alert Slack", config: { webhookUrl: "{{env.DEMO_SLACK_WEBHOOK}}", message: "\u{1F6A8} High-value payment failed!\nAmount: ${{payload.amount}}\nCustomer: {{payload.customer_name}}\nTransaction: {{payload.transaction_id}}" }, position: { x: 500, y: 0 } },
-      { id: "node_4", type: "create_github_issue", label: "Create Review Issue", config: { owner: "{{env.GITHUB_OWNER}}", repo: "{{env.GITHUB_DEMO_REPO}}", title: "Fraud Review: TXN-{{payload.transaction_id}}", body: "Amount: ${{payload.amount}}\nCustomer: {{payload.customer_email}}\nRequires manual review.", labels: ["fraud-review", "high-priority"] }, position: { x: 750, y: 0 } },
+      { id: "node_3", type: "post_slack", label: "Alert Slack", config: { integrationId: "PLACEHOLDER", message: "\u{1F6A8} High-value payment failed!\nAmount: ${{payload.amount}}\nCustomer: {{payload.customer_name}}\nTransaction: {{payload.transaction_id}}" }, position: { x: 500, y: 0 } },
+      { id: "node_4", type: "create_github_issue", label: "Create Review Issue", config: { integrationId: "PLACEHOLDER", title: "Fraud Review: TXN-{{payload.transaction_id}}", body: "Amount: ${{payload.amount}}\nCustomer: {{payload.customer_email}}\nRequires manual review.", labels: ["fraud-review", "high-priority"] }, position: { x: 750, y: 0 } },
       { id: "node_5", type: "send_email", label: "Notify Customer", config: { to: "{{payload.customer_email}}", subject: "Action Required: Payment of ${{payload.amount}} failed", body: "Dear {{payload.customer_name}},\n\nYour payment could not be processed.\n\nPlease update your payment method.\n\nFlowForge Payments Team" }, position: { x: 1000, y: 0 } },
     ],
     edges: [
@@ -57,7 +57,7 @@ const TEMPLATES: Template[] = [
       { id: "node_1", type: "trigger", label: "Daily 9am", config: { triggerType: "schedule", cronExpression: "0 9 * * *" }, position: { x: 0, y: 0 } },
       { id: "node_2", type: "http_request", label: "Fetch Posts", config: { method: "GET", url: "https://jsonplaceholder.typicode.com/posts?_limit=3", extractPath: "data" }, position: { x: 250, y: 0 } },
       { id: "node_3", type: "data_transform", label: "Format Digest", config: { extractPath: "steps.node_2.output", outputKey: "digest" }, position: { x: 500, y: 0 } },
-      { id: "node_4", type: "post_discord", label: "Post to Discord", config: { webhookUrl: "{{env.DEMO_DISCORD_WEBHOOK}}", message: "\u{1F4F0} Daily Tech Digest\n\nFetched items from API" }, position: { x: 750, y: 0 } },
+      { id: "node_4", type: "post_discord", label: "Post to Discord", config: { integrationId: "PLACEHOLDER", message: "\u{1F4F0} Daily Tech Digest\n\nFetched items from API" }, position: { x: 750, y: 0 } },
     ],
     edges: [
       { id: "edge_1", source: "node_1", target: "node_2", label: "at 9am daily" },
@@ -76,7 +76,7 @@ const TEMPLATES: Template[] = [
       { id: "node_1", type: "trigger", label: "User Signed Up", config: { triggerType: "webhook" }, position: { x: 0, y: 0 } },
       { id: "node_2", type: "send_email", label: "Welcome Email", config: { to: "{{payload.user_email}}", subject: "Welcome to FlowForge, {{payload.user_name}}!", body: "Hi {{payload.user_name}},\n\nWelcome! Your {{payload.plan}} plan is now active.\n\nThe FlowForge Team" }, position: { x: 250, y: 0 } },
       { id: "node_3", type: "delay", label: "Wait 2 Seconds", config: { duration: 2, unit: "seconds" }, position: { x: 500, y: 0 } },
-      { id: "node_4", type: "create_github_issue", label: "Log New User", config: { owner: "{{env.GITHUB_OWNER}}", repo: "{{env.GITHUB_DEMO_REPO}}", title: "New {{payload.plan}} user: {{payload.user_name}}", body: "Email: {{payload.user_email}}\nPlan: {{payload.plan}}", labels: ["new-user"] }, position: { x: 750, y: 0 } },
+      { id: "node_4", type: "create_github_issue", label: "Log New User", config: { integrationId: "PLACEHOLDER", title: "New {{payload.plan}} user: {{payload.user_name}}", body: "Email: {{payload.user_email}}\nPlan: {{payload.plan}}", labels: ["new-user"] }, position: { x: 750, y: 0 } },
     ],
     edges: [
       { id: "edge_1", source: "node_1", target: "node_2", label: "then" },

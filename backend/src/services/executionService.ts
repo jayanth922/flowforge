@@ -17,7 +17,7 @@ const sleep = (ms: number): Promise<void> =>
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY_MS = 500;
-const DEMO_DELAY_CAP_MS = 2000;
+const MAX_DELAY_MS = 2000;
 
 interface ExecutionContext {
   payload: Record<string, unknown>;
@@ -187,9 +187,9 @@ const executeNodeAction = async (
       if (unit === "minutes") ms = duration * 60_000;
       else if (unit === "hours") ms = duration * 3_600_000;
 
-      const capped = Math.min(ms, DEMO_DELAY_CAP_MS);
+      const capped = Math.min(ms, MAX_DELAY_MS);
       await sleep(capped);
-      return { waited: true, duration: `${capped}ms (capped for demo)` };
+      return { waited: true, duration: `${capped}ms` };
     }
 
     case "data_transform": {

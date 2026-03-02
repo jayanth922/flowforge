@@ -37,7 +37,7 @@ AVAILABLE NODE TYPES AND THEIR CONFIG:
 7. condition — if/else branching
    config: { "expression": "{{payload.amount}} > 500" }
 
-8. delay — wait for a time period (capped at 2s in demo)
+8. delay — wait for a time period (capped at 2s for safety)
    config: { "duration": 60, "unit": "seconds" | "minutes" | "hours" }
 
 9. notification — generic alert/notification (prefer send_email or post_slack when possible)

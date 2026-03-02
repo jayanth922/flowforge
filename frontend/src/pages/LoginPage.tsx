@@ -48,24 +48,6 @@ const LoginPage = () => {
           FlowForge
         </h1>
 
-        <div className="mb-4 rounded-lg border border-blue-800/50 bg-blue-900/20 p-3">
-          <p className="text-center text-xs text-blue-300">
-            Try the demo &mdash;{" "}
-            <span className="font-mono text-blue-200">demo@flowforge.com</span>{" "}
-            / <span className="font-mono text-blue-200">Demo1234!</span>
-          </p>
-          <button
-            type="button"
-            onClick={() => {
-              setEmail("demo@flowforge.com");
-              setPassword("Demo1234!");
-            }}
-            className="mt-2 w-full rounded-md bg-blue-800/40 px-3 py-1.5 text-xs font-medium text-blue-200 transition-colors hover:bg-blue-800/60"
-          >
-            Use Demo Credentials
-          </button>
-        </div>
-
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label htmlFor="email" className="mb-1 block text-sm text-gray-400">

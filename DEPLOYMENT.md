@@ -10,6 +10,10 @@
 | `JWT_REFRESH_SECRET` | Yes | Different random 64-char string for refresh tokens | Generate: `openssl rand -hex 32` |
 | `GROQ_API_KEY` | Yes | Free API key from console.groq.com | `gsk_...` |
 | `FRONTEND_URL` | Yes | Vercel deployment URL (for CORS) | `https://flowforge.vercel.app` |
+| `BASE_URL` | Yes | Backend public URL | `https://flowforge-backend.onrender.com` |
+| `RESEND_API_KEY` | Yes | Resend API key for email integration | `re_...` |
+| `GITHUB_TOKEN` | No | GitHub PAT for issue creation integration | `ghp_...` |
+| `ENCRYPTION_KEY` | Yes | 64-char hex string for credential encryption | Generate: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `NODE_ENV` | Yes | Set to `production` | `production` |
 | `PORT` | No | Auto-injected by Render — do **not** set manually | — |
 
@@ -17,7 +21,7 @@
 
 | Variable | Required | Description | Example |
 |----------|----------|-------------|---------|
-| `VITE_API_URL` | Yes | Render backend URL with `/api/v1` suffix | `https://flowforge-backend.onrender.com/api/v1` |
+| `VITE_API_URL` | Yes | Render backend URL | `https://flowforge-backend.onrender.com` |
 
 ## Deploy Backend on Render
 
@@ -34,7 +38,7 @@
 1. Go to [vercel.com](https://vercel.com) → New Project → Import your repo
 2. Set **Root Directory** to `frontend`
 3. Framework Preset: **Vite**
-4. Add environment variable: `VITE_API_URL` = your Render backend URL + `/api/v1`
+4. Add environment variable: `VITE_API_URL` = your Render backend URL
 5. Deploy
 
 ## Post-Deploy: Set CORS
@@ -47,20 +51,8 @@ FRONTEND_URL=https://your-project.vercel.app
 
 This allows the frontend to make API requests to the backend.
 
-## Post-Deploy: Seed Demo Data
-
-Run the seed script locally with production database credentials:
-
-```bash
-DATABASE_URL="postgresql://..." \
-MONGODB_URI="mongodb+srv://..." \
-npm run seed --prefix backend
-```
-
-This creates the demo tenant, user (`demo@flowforge.com` / `Demo1234!`), and 3 pre-compiled workflows.
-
 ## Verify
 
 1. Visit your Render URL at `/api/v1/health` — should return `{ "success": true, "data": { "status": "ok" } }`
 2. Visit your Vercel URL — should show the FlowForge login page
-3. Log in with `demo@flowforge.com` / `Demo1234!`
+3. Register a new account to get started

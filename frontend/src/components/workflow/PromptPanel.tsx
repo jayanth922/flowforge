@@ -6,7 +6,7 @@ interface PromptPanelProps {
   error: string | null;
 }
 
-const DEMO_TEMPLATES = [
+const PROMPT_TEMPLATES = [
   {
     title: "Payment Retry",
     prompt:
@@ -112,7 +112,7 @@ const PromptPanel = ({
           Or try a template
         </p>
         <div className="flex flex-col gap-2">
-          {DEMO_TEMPLATES.map((t) => (
+          {PROMPT_TEMPLATES.map((t) => (
             <button
               key={t.title}
               onClick={() => onPromptChange(t.prompt)}

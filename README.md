@@ -1,8 +1,5 @@
 # FlowForge
 
-**Live Demo:** https://flowforge-tau.vercel.app
-**Demo credentials:** `demo@flowforge.com` / `Demo1234!`
-
 > Natural language workflow automation engine — describe a business
 > process in plain English and watch it compile into an executable
 > visual workflow in real-time.
@@ -14,7 +11,7 @@
 ![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-green)
 ![AI](https://img.shields.io/badge/AI-Groq%20Llama%203.3-orange)
 
-<!-- Add demo GIF here -->
+<!-- Add screenshot here -->
 
 ## What It Does
 - Type a plain English workflow description
@@ -37,9 +34,9 @@
 1. Clone the repo: `git clone https://github.com/YOUR_USERNAME/flowforge`
 2. Copy env files: `cp backend/.env.example backend/.env` and fill values
 3. Start databases: `docker compose up -d`
-4. Install and run backend: `cd backend && npm install && npm run migrate && npm run seed && npm run dev`
+4. Install and run backend: `cd backend && npm install && npm run migrate && npm run dev`
 5. Install and run frontend: `cd frontend && npm install && npm run dev`
-6. Open http://localhost:3000
+6. Open http://localhost:3000 and register a new account
 
 ## Architecture
 - **LLM Compiler:** Groq Llama 3.3 70B with Zod schema validation
