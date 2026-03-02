@@ -12,11 +12,11 @@ const NavHeader = () => {
   };
 
   return (
-    <header className="sticky top-0 z-40 border-b border-white/5 bg-gray-950/70 px-6 py-3 backdrop-blur-md">
+    <header className="sticky top-0 z-40 border-b border-gray-200 bg-white/80 px-6 py-3 backdrop-blur-md">
       <div className="mx-auto flex max-w-7xl items-center justify-between">
         <Link
           to="/dashboard"
-          className="text-lg font-bold tracking-tight text-white"
+          className="text-lg font-bold tracking-tight text-gray-900"
         >
           FlowForge
         </Link>
@@ -24,19 +24,19 @@ const NavHeader = () => {
         <div className="flex items-center gap-6">
           <Link
             to="/dashboard"
-            className="text-sm text-gray-400 transition-colors hover:text-white"
+            className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
           >
             Dashboard
           </Link>
           <Link
             to="/templates"
-            className="text-sm text-gray-400 transition-colors hover:text-white"
+            className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
           >
             Templates
           </Link>
           <Link
             to="/integrations"
-            className="text-sm text-gray-400 transition-colors hover:text-white"
+            className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
           >
             Integrations
           </Link>
@@ -44,11 +44,11 @@ const NavHeader = () => {
 
         <div className="flex items-center gap-4">
           {user && (
-            <span className="text-sm text-gray-500">{user.email}</span>
+            <span className="text-sm font-medium text-gray-500">{user.email}</span>
           )}
           <button
             onClick={handleLogout}
-            className="text-sm text-gray-400 transition-colors hover:text-white"
+            className="text-sm font-medium text-gray-500 transition-colors hover:text-gray-900"
           >
             Logout
           </button>

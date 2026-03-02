@@ -11,73 +11,73 @@ const NODE_STYLES: Record<
   { bg: string; border: string; badge: string; icon: string }
 > = {
   trigger: {
-    bg: "bg-blue-900/50",
-    border: "border-blue-500",
-    badge: "bg-blue-500/20 text-blue-300",
+    bg: "bg-blue-50",
+    border: "border-blue-200",
+    badge: "bg-blue-100 text-blue-700",
     icon: "⚡",
   },
   condition: {
-    bg: "bg-yellow-900/50",
-    border: "border-yellow-500",
-    badge: "bg-yellow-500/20 text-yellow-300",
+    bg: "bg-yellow-50",
+    border: "border-yellow-200",
+    badge: "bg-yellow-100 text-yellow-700",
     icon: "◆",
   },
   delay: {
-    bg: "bg-orange-900/50",
-    border: "border-orange-500",
-    badge: "bg-orange-500/20 text-orange-300",
+    bg: "bg-orange-50",
+    border: "border-orange-200",
+    badge: "bg-orange-100 text-orange-700",
     icon: "⏱",
   },
   notification: {
-    bg: "bg-purple-900/50",
-    border: "border-purple-500",
-    badge: "bg-purple-500/20 text-purple-300",
+    bg: "bg-purple-50",
+    border: "border-purple-200",
+    badge: "bg-purple-100 text-purple-700",
     icon: "🔔",
   },
   send_email: {
-    bg: "bg-green-900/50",
-    border: "border-green-500",
-    badge: "bg-green-500/20 text-green-300",
+    bg: "bg-green-50",
+    border: "border-green-200",
+    badge: "bg-green-100 text-green-700",
     icon: "✉",
   },
   post_slack: {
-    bg: "bg-emerald-900/50",
-    border: "border-emerald-500",
-    badge: "bg-emerald-500/20 text-emerald-300",
+    bg: "bg-emerald-50",
+    border: "border-emerald-200",
+    badge: "bg-emerald-100 text-emerald-700",
     icon: "💬",
   },
   post_discord: {
-    bg: "bg-indigo-900/50",
-    border: "border-indigo-500",
-    badge: "bg-indigo-500/20 text-indigo-300",
+    bg: "bg-indigo-50",
+    border: "border-indigo-200",
+    badge: "bg-indigo-100 text-indigo-700",
     icon: "🎮",
   },
   create_github_issue: {
-    bg: "bg-gray-800/50",
-    border: "border-gray-500",
-    badge: "bg-gray-500/20 text-gray-300",
+    bg: "bg-gray-50",
+    border: "border-gray-300",
+    badge: "bg-gray-200 text-gray-700",
     icon: "🐙",
   },
   http_request: {
-    bg: "bg-cyan-900/50",
-    border: "border-cyan-500",
-    badge: "bg-cyan-500/20 text-cyan-300",
+    bg: "bg-cyan-50",
+    border: "border-cyan-200",
+    badge: "bg-cyan-100 text-cyan-700",
     icon: "🌐",
   },
   data_transform: {
-    bg: "bg-pink-900/50",
-    border: "border-pink-500",
-    badge: "bg-pink-500/20 text-pink-300",
+    bg: "bg-pink-50",
+    border: "border-pink-200",
+    badge: "bg-pink-100 text-pink-700",
     icon: "🔀",
   },
 };
 
 const STEP_OVERRIDES: Record<StepStatus, string> = {
   pending: "opacity-60",
-  running: "animate-[pulse-glow_2s_ease-in-out_infinite] ring-2 ring-purple-500 shadow-[0_0_25px_rgba(168,85,247,0.5)] !border-purple-400 z-10",
-  completed: "!bg-green-900/40 !border-green-500/50 shadow-[0_0_15px_rgba(34,197,94,0.2)]",
-  failed: "!bg-red-900/40 !border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.2)]",
-  skipped: "opacity-40 !border-dashed !border-gray-600",
+  running: "ring-2 ring-blue-500 shadow-md !border-blue-400 z-10",
+  completed: "!bg-green-50 !border-green-400 shadow-sm",
+  failed: "!bg-red-50 !border-red-400 shadow-sm",
+  skipped: "opacity-40 border-dashed !border-gray-300",
 };
 
 const STEP_PREFIX: Record<StepStatus, string> = {
@@ -97,23 +97,23 @@ const CustomNode = ({ data }: NodeProps<CustomNodeType>) => {
 
   return (
     <div
-      className={`rounded-lg border-2 ${style.border} ${style.bg} px-4 py-3 shadow-lg backdrop-blur-sm ${override}`}
+      className={`rounded-lg border-2 ${style.border} ${style.bg} px-4 py-3 shadow-sm ${override}`}
     >
       {nodeType !== "trigger" && (
         <Handle
           type="target"
           position={Position.Left}
-          className="!h-3 !w-3 !border-2 !border-gray-400 !bg-gray-700"
+          className="!h-3 !w-3 !border-2 !border-gray-300 !bg-white"
         />
       )}
 
       <div className="flex flex-col items-center gap-1.5">
         <span
-          className={`rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wider ${style.badge}`}
+          className={`rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${style.badge}`}
         >
           {style.icon} {nodeType}
         </span>
-        <span className="text-sm font-semibold text-white">
+        <span className="text-sm font-bold text-gray-900">
           {prefix}{data.label}
         </span>
       </div>
@@ -121,7 +121,7 @@ const CustomNode = ({ data }: NodeProps<CustomNodeType>) => {
       <Handle
         type="source"
         position={Position.Right}
-        className="!h-3 !w-3 !border-2 !border-gray-400 !bg-gray-700"
+        className="!h-3 !w-3 !border-2 !border-gray-300 !bg-white"
       />
     </div>
   );

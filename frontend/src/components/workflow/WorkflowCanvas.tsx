@@ -40,9 +40,9 @@ const toFlowEdges = (dagEdges: DAGEdge[]): Edge[] =>
     target: e.target,
     label: e.label,
     animated: true,
-    style: { stroke: "#a855f7", strokeWidth: 2, filter: "drop-shadow(0 0 4px rgba(168,85,247,0.4))" },
-    labelStyle: { fill: "#e5e7eb", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em" },
-    labelBgStyle: { fill: "rgba(17,17,17,0.8)", rx: 4, ry: 4 },
+    style: { stroke: "#9ca3af", strokeWidth: 1.5 },
+    labelStyle: { fill: "#6b7280", fontSize: 11, fontWeight: 600, letterSpacing: "0.05em" },
+    labelBgStyle: { fill: "#ffffff", rx: 4, ry: 4 },
     labelBgPadding: [6, 4],
   }));
 
@@ -69,11 +69,11 @@ const WorkflowCanvas = ({
       nodeTypes={nodeTypes}
       fitView
       proOptions={{ hideAttribution: true }}
-      className="bg-transparent"
+      className="bg-gray-50"
       onNodeClick={(_, node) => onNodeClick?.(node.id)}
     >
-      <Controls className="!bg-gray-900/80 !border-white/10 !shadow-lg backdrop-blur-md [&>button]:!bg-transparent [&>button]:!border-white/5 [&>button]:!text-gray-300 [&>button:hover]:!bg-white/10" />
-      <Background variant={BackgroundVariant.Dots} color="rgba(255,255,255,0.1)" gap={24} size={2} />
+      <Controls className="!bg-white !border-gray-200 !shadow-sm [&>button]:!bg-white [&>button]:!border-gray-100 [&>button]:!text-gray-600 [&>button:hover]:!bg-gray-50" />
+      <Background variant={BackgroundVariant.Dots} color="#d1d5db" gap={24} size={1.5} />
     </ReactFlow>
   );
 };

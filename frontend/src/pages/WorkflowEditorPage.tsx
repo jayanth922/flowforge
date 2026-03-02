@@ -14,7 +14,6 @@ import {
   type IntegrationSummary,
 } from "../services/api";
 import { useExecutionStatus } from "../hooks/useExecutionStatus";
-import NavHeader from "../components/NavHeader";
 import PromptPanel from "../components/workflow/PromptPanel";
 import WorkflowCanvas from "../components/workflow/WorkflowCanvas";
 import ExecutionLogPanel from "../components/workflow/ExecutionLogPanel";
@@ -209,7 +208,7 @@ const WorkflowEditorPageInner = () => {
         setWebhookEnabled(status.webhookEnabled);
         setWebhookUrl(status.webhookUrl);
       })
-      .catch(() => {});
+      .catch(() => { });
 
     return () => {
       mounted = false;
@@ -359,8 +358,7 @@ const WorkflowEditorPageInner = () => {
   const showExecuteButton = nodes.length > 0 && workflowId;
 
   return (
-    <div className="flex h-screen flex-col bg-gray-950">
-      <NavHeader />
+    <div className="flex flex-1 flex-col bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden m-4 md:m-6">
 
       <div className="flex items-center justify-between border-b border-gray-800 px-4 py-2">
         <span className="text-sm text-gray-400">
@@ -404,14 +402,12 @@ const WorkflowEditorPageInner = () => {
                 <button
                   onClick={handleWebhookToggle}
                   disabled={webhookLoading}
-                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${
-                    webhookEnabled ? "bg-indigo-600" : "bg-gray-700"
-                  }`}
+                  className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none disabled:opacity-50 ${webhookEnabled ? "bg-indigo-600" : "bg-gray-700"
+                    }`}
                 >
                   <span
-                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${
-                      webhookEnabled ? "translate-x-5" : "translate-x-0"
-                    }`}
+                    className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ${webhookEnabled ? "translate-x-5" : "translate-x-0"
+                      }`}
                   />
                 </button>
               </div>
